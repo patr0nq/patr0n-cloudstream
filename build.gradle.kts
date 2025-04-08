@@ -36,13 +36,13 @@ subprojects {
 
     cloudstream {
         // when running through github workflow, GITHUB_REPOSITORY should contain current repository name
-        setRepo(System.getenv("GITHUB_REPOSITORY") ?: "https://github.com/nikyokki/nik-cloudstream")
+        setRepo(System.getenv("GITHUB_REPOSITORY") ?: "https://github.com/patr0nq/patr0n-cloudstream")
 
-        authors = listOf("nikyokki")
+        authors = listOf("patr0nq")
     }
 
     android {
-        namespace = "com.nikyokki"
+        namespace = "com.patr0nq"
 
         defaultConfig {
             minSdk = 21
