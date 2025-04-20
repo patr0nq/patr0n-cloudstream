@@ -245,7 +245,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=www.diziyou.co&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 14235,
+        "fileSize": 14240,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -363,7 +363,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=fullhdfilm.pro&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 18261,
+        "fileSize": 18266,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -373,7 +373,7 @@
             "Movie",
             "TvSeries"
         ],
-        "version": 13,
+        "version": 14,
         "internalName": "FullHDFilm",
         "description": "Fullhdfilm ile en yeni vizyon filmler Full HD ve kesintisiz film sizlerle. \u00d6zg\u00fcn film ar\u015fivimizle en \u00fcst\u00fcn kaliteli film izle keyfini sunuyoruz.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/FullHDFilm.cs3",
@@ -437,26 +437,6 @@
         "description": "(VPN) FullPorner is the best free full length porn video site. Choose from millions of hardcore videos that stream quickly and in high quality and only full length",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/FullPorner.cs3",
         "name": "FullPorner"
-    },
-    {
-        "iconUrl": "https://www.apkdelisi.net/wp-content/uploads/2022/03/golge-tv-reklamsiz-mod-apk-canli-tv-apkdelisi-0.jpg",
-        "apiVersion": 1,
-        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 28827,
-        "status": 3,
-        "language": "tr",
-        "authors": [
-            "usdogu",
-            "keyiflerolsun"
-        ],
-        "tvTypes": [
-            "Live"
-        ],
-        "version": 9,
-        "internalName": "GolgeTV",
-        "description": "GolgeTV cloudstream eklentisidir. Sevdi\u011finiz yay\u0131n platformlar\u0131n\u0131 ve canl\u0131 ma\u00e7lar\u0131 burada bulabilirsiniz.",
-        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/GolgeTV.cs3",
-        "name": "GolgeTV"
     },
     {
         "iconUrl": "https://www.google.com/s2/favicons?domain=hdfilmcehennemi.com&sz=%size%",
@@ -818,7 +798,7 @@
             "Live",
             "TvSeries"
         ],
-        "version": 71,
+        "version": 72,
         "internalName": "RecTV",
         "description": "RecTv APK, T\u00fcrkiye\u2019deki en pop\u00fcler \u00c7evrimi\u00e7i Medya Ak\u0131\u015f platformlar\u0131ndan biridir. Filmlerin, Canl\u0131 Sporlar\u0131n, Web Dizilerinin ve \u00e7ok daha fazlas\u0131n\u0131n keyfini \u00fccretsiz \u00e7\u0131kar\u0131n.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/RecTV.cs3",
