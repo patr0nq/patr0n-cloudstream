@@ -1,4 +1,4 @@
-package com.lagradost.cloudstream3.movieproviders
+package com.patr0n
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
@@ -87,12 +87,13 @@ class DizilabProvider : MainAPI() {
         val videoUrl = doc.selectFirst("video source")?.attr("src")
         if (videoUrl != null) {
             callback.invoke(
-                newExtractorLink(
-                    ExtractorLinkType.STREAM, // ilk parametre: ExtractorLinkType
-                    name,                     // ikinci parametre: name (String)
-                    videoUrl,                 // üçüncü parametre: url (String)
-                    mainUrl                   // dördüncü parametre: referer (String)
-                    // Diğer parametreler opsiyonel
+                ExtractorLink(
+                    source = name,
+                    name = name,
+                    url = videoUrl,
+                    referer = mainUrl,
+                    quality = Qualities.P1080.value,
+                    isM3u8 = videoUrl.endsWith(".m3u8")
                 )
             )
         }
