@@ -12,9 +12,13 @@ class DizilabProvider : MainAPI() {
     override val supportedTypes = setOf(TvType.TvSeries)
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val url = "$mainUrl/arsiv?page=$page"
-        val doc = app.get(url).document
-        val series = doc.select("div.col-6.col-md-3.mb-4").mapNotNull {
+        val allSeriesUrl = "$mainUrl/arsiv?page=$page"
+        val actionSeriesUrl = "$mainUrl/arsiv?tur=Aksiyon&page=$page"
+
+        val allSeriesDoc = app.get(allSeriesUrl).document
+        val actionSeriesDoc = app.get(actionSeriesUrl).document
+
+        val allSeries = allSeriesDoc.select("div.col-6.col-md-3.mb-4").mapNotNull {
             val aTag = it.selectFirst("a")
             val imgTag = it.selectFirst("img")
             val title = imgTag?.attr("alt") ?: return@mapNotNull null
@@ -24,7 +28,24 @@ class DizilabProvider : MainAPI() {
                 this.posterUrl = posterUrl
             }
         }
-        return newHomePageResponse("Arşiv", series)
+
+        val actionSeries = actionSeriesDoc.select("div.col-6.col-md-3.mb-4").mapNotNull {
+            val aTag = it.selectFirst("a")
+            val imgTag = it.selectFirst("img")
+            val title = imgTag?.attr("alt") ?: return@mapNotNull null
+            val posterUrl = imgTag.attr("src")
+            val link = fixUrl(aTag?.attr("href") ?: return@mapNotNull null)
+            newAnimeSearchResponse(title, link, TvType.TvSeries) {
+                this.posterUrl = posterUrl
+            }
+        }
+
+        return HomePageResponse(
+            listOf(
+                HomePageList("Tüm Diziler", allSeries),
+                HomePageList("Aksiyon Dizileri", actionSeries)
+            )
+        )
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
