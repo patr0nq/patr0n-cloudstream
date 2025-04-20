@@ -88,11 +88,11 @@ class DizilabProvider : MainAPI() {
         if (videoUrl != null) {
             callback.invoke(
                 newExtractorLink(
-                    name,
-                    name,
-                    videoUrl,
-                    mainUrl,
-                    Qualities.P1080.value
+                    ExtractorLinkType.STREAM, // ilk parametre: ExtractorLinkType
+                    name,                     // ikinci parametre: name (String)
+                    videoUrl,                 // üçüncü parametre: url (String)
+                    mainUrl                   // dördüncü parametre: referer (String)
+                    // Diğer parametreler opsiyonel
                 )
             )
         }
