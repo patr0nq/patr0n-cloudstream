@@ -1,102 +1,80 @@
-package com.nikyokki
+package com.lagradost.cloudstream3.movieproviders
 
-import android.util.Log
-import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
-import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
+import org.jsoup.Jsoup
 
-class Temel : MainAPI() {
-    override var mainUrl              = "https://www.setfilmizle.lol"
-    override var name                 = "Temel"
-    override val hasMainPage          = true
-    override var lang                 = "tr"
-    override val hasQuickSearch       = false
-    override val hasChromecastSupport = true
-    override val hasDownloadSupport   = true
-    override val supportedTypes       = setOf(TvType.Movie)
-
-    override val mainPage = mainPageOf(
-        "${mainUrl}/tur/aile/"      to "Aile",
-        "${mainUrl}/tur/aksiyon/"   to "Aksiyon",
-        "${mainUrl}/tur/animasyon/" to "Animasyon",
-        "${mainUrl}/tur/belgesel/"  to "Belgesel"
-    )
+class DizilabProvider : MainAPI() {
+    override var mainUrl = "https://dizilab.live"
+    override var name = "Dizilab"
+    override val hasMainPage = true
+    override var lang = "tr"
+    override val supportedTypes = setOf(TvType.TvSeries)
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get("${request.data}").document
-        val home     = document.select("div.items article").mapNotNull { it.toMainPageResult() }
-
-        return newHomePageResponse(request.name, home)
-    }
-
-    private fun Element.toMainPageResult(): SearchResponse? {
-        val title     = this.selectFirst("div.flbaslik")?.text() ?: return null
-        val href      = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("data-src"))
-
-        return newMovieSearchResponse(title, href, TvType.Movie) { this.posterUrl = posterUrl }
+        val url = "$mainUrl/arsiv?page=$page"
+        val doc = app.get(url).document
+        val series = doc.select("div.col-6.col-md-3.mb-4").mapNotNull {
+            val aTag = it.selectFirst("a")
+            val imgTag = it.selectFirst("img")
+            val title = imgTag?.attr("alt") ?: return@mapNotNull null
+            val posterUrl = imgTag.attr("src")
+            val link = fixUrl(aTag?.attr("href") ?: return@mapNotNull null)
+            newAnimeSearchResponse(title, link, TvType.TvSeries) {
+                this.posterUrl = posterUrl
+            }
+        }
+        return newHomePageResponse("Arşiv", series)
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val document = app.get("${mainUrl}/?s=${query}").document
-
-        return document.select("div.result-item article").mapNotNull { it.toSearchResult() }
-    }
-
-    private fun Element.toSearchResult(): SearchResponse? {
-        val title     = this.selectFirst("div.title a")?.text() ?: return null
-        val href      = fixUrlNull(this.selectFirst("div.title a")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
-
-        return newMovieSearchResponse(title, href, TvType.Movie) { this.posterUrl = posterUrl }
-    }
-
-    override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
-
-    override suspend fun load(url: String): LoadResponse? {
-        val document = app.get(url).document
-
-        val title           = document.selectFirst("h1")?.text()?.trim() ?: return null
-        val poster          = fixUrlNull(document.selectFirst("div.poster img")?.attr("src"))
-        val description     = document.selectFirst("div.wp-content p")?.text()?.trim()
-        val year            = document.selectFirst("div.extra span.C a")?.text()?.trim()?.toIntOrNull()
-        val tags            = document.select("div.sgeneros a").map { it.text() }
-        val rating          = document.selectFirst("span.dt_rating_vgs")?.text()?.trim()?.toRatingInt()
-        val duration        = document.selectFirst("span.runtime")?.text()?.split(" ")?.first()?.trim()?.toIntOrNull()
-        val recommendations = document.select("div.srelacionados article").mapNotNull { it.toRecommendationResult() }
-        val actors          = document.select("span.valor a").map { Actor(it.text()) }
-        val trailer         = Regex("""embed\/(.*)\?rel""").find(document.html())?.groupValues?.get(1)?.let { "https://www.youtube.com/embed/$it" }
-
-        return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl       = poster
-            this.plot            = description
-            this.year            = year
-            this.tags            = tags
-            this.rating          = rating
-            this.duration        = duration
-            this.recommendations = recommendations
-            addActors(actors)
-            addTrailer(trailer)
+        val url = "$mainUrl/arama?q=$query"
+        val doc = app.get(url).document
+        return doc.select("div.col-6.col-md-3.mb-4").mapNotNull {
+            val aTag = it.selectFirst("a")
+            val imgTag = it.selectFirst("img")
+            val title = imgTag?.attr("alt") ?: return@mapNotNull null
+            val posterUrl = imgTag.attr("src")
+            val link = fixUrl(aTag?.attr("href") ?: return@mapNotNull null)
+            newAnimeSearchResponse(title, link, TvType.TvSeries) {
+                this.posterUrl = posterUrl
+            }
         }
     }
 
-    private fun Element.toRecommendationResult(): SearchResponse? {
-        val title     = this.selectFirst("a img")?.attr("alt") ?: return null
-        val href      = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("a img")?.attr("data-src"))
-
-        return newMovieSearchResponse(title, href, TvType.Movie) { this.posterUrl = posterUrl }
+    override suspend fun load(url: String): LoadResponse {
+        val doc = app.get(url).document
+        val title = doc.selectFirst("h1")?.text() ?: "Bilinmeyen"
+        val poster = doc.selectFirst("img.img-fluid.rounded")?.attr("src")
+        val episodes = doc.select("ul.list-group.list-group-flush li a").mapNotNull {
+            val epName = it.text()
+            val epUrl = fixUrl(it.attr("href"))
+            Episode(epUrl, epName)
+        }
+        return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
+            this.posterUrl = poster
+        }
     }
 
-    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
-        Log.d("STF", "data » ${data}")
-        val document = app.get(data).document
-
-        // TODO:
-        // loadExtractor(iframe, "${mainUrl}/", subtitleCallback, callback)
-
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        val doc = app.get(data).document
+        val videoUrl = doc.selectFirst("video source")?.attr("src")
+        if (videoUrl != null) {
+            callback.invoke(
+                ExtractorLink(
+                    name,
+                    name,
+                    videoUrl,
+                    referer = mainUrl,
+                    quality = Qualities.P1080.value
+                )
+            )
+        }
         return true
     }
 }

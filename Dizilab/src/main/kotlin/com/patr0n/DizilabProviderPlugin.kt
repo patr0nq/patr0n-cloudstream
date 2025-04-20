@@ -5,8 +5,8 @@ import com.lagradost.cloudstream3.plugins.Plugin
 import android.content.Context
 
 @CloudstreamPlugin
-class DizilabPlugin: Plugin() {
+class DizilabProviderPlugin: Plugin() {
     override fun load(context: Context) {
-        registerMainAPI(Dizilab())
+        registerMainAPI(DizilabProvider())
     }
 }
