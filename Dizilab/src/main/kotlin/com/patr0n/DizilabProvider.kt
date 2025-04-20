@@ -91,8 +91,8 @@ class DizilabProvider : MainAPI() {
                     name,
                     name,
                     videoUrl,
-                    referer = mainUrl,
-                    quality = Qualities.P1080.value
+                    mainUrl,
+                    Qualities.P1080.value
                 )
             )
         }
