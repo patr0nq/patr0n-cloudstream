@@ -87,7 +87,7 @@ class DizilabProvider : MainAPI() {
         val videoUrl = doc.selectFirst("video source")?.attr("src")
         if (videoUrl != null) {
             callback.invoke(
-                ExtractorLink(
+                newExtractorLink(
                     name,
                     name,
                     videoUrl,
