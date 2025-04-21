@@ -968,6 +968,25 @@
         "name": "Tafdi"
     },
     {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=www.tlctv.com.tr/&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+        "fileSize": 10414,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "nikypatr0nokki"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 0,
+        "internalName": "Tlc",
+        "description": "Tlc programlar\u0131n\u0131 buradan izleyebilirsiniz.",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/Tlc.cs3",
+        "name": "Tlc"
+    },
+    {
         "iconUrl": "https://www.google.com/s2/favicons?domain=www.turkanime.co&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
