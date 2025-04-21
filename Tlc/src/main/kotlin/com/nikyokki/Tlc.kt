@@ -101,13 +101,13 @@ class Tlc : MainAPI() {
                 loadExtractor(videoUrl, mainUrl, subtitleCallback, callback)
             } else {
                 callback.invoke(
-                    ExtractorLink(
-                        source = this.name,
-                        name = this.name,
-                        url = videoUrl,
-                        referer = mainUrl,
-                        quality = Qualities.Unknown.value,
-                        isM3u8 = videoUrl.endsWith(".m3u8")
+                    newExtractorLink(
+                        this.name,
+                        this.name,
+                        videoUrl,
+                        mainUrl,
+                        if (videoUrl.endsWith(".m3u8")) Qualities.Unknown.value else Qualities.P720.value,
+                        videoUrl.endsWith(".m3u8")
                     )
                 )
             }
