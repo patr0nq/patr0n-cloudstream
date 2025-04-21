@@ -28,15 +28,15 @@ class Tlc : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val document = app.get("${request.data}").document
-        val home = document.select("div.card-container").mapNotNull { it.toMainPageResult() }
+        val home = document.select("div.card, div.card-container, div.program-card").mapNotNull { it.toMainPageResult() }
 
         return newHomePageResponse(request.name, home)
     }
 
     private fun Element.toMainPageResult(): SearchResponse? {
-        val title = this.selectFirst("h3.card-title")?.text() ?: return null
-        val href = fixUrlNull(this.selectFirst("a.card-link")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img.card-img")?.attr("src"))
+        val title = this.selectFirst("h3.card-title, h3.program-title, div.card-body h3")?.text() ?: return null
+        val href = fixUrlNull(this.selectFirst("a.card-link, a")?.attr("href")) ?: return null
+        val posterUrl = fixUrlNull(this.selectFirst("img.card-img, img")?.attr("src"))
 
         return newTvSeriesSearchResponse(title, href, TvType.TvSeries) { 
             this.posterUrl = posterUrl 
@@ -64,16 +64,16 @@ class Tlc : MainAPI() {
     override suspend fun load(url: String): LoadResponse? {
         val document = app.get(url).document
 
-        val title = document.selectFirst("h1.show-title")?.text()?.trim() ?: return null
-        val poster = fixUrlNull(document.selectFirst("div.show-img img")?.attr("src"))
-        val description = document.selectFirst("div.show-description")?.text()?.trim()
+        val title = document.selectFirst("h1.show-title, h1.program-title")?.text()?.trim() ?: return null
+        val poster = fixUrlNull(document.selectFirst("div.show-img img, div.program-image img")?.attr("src"))
+        val description = document.selectFirst("div.show-description, div.program-description")?.text()?.trim()
         
         // Bölümleri topla
-        val episodes = document.select("div.episode-card").mapNotNull {
-            val epTitle = it.selectFirst("h3.episode-title")?.text() ?: return@mapNotNull null
-            val epHref = fixUrlNull(it.selectFirst("a.episode-link")?.attr("href")) ?: return@mapNotNull null
-            val epThumb = fixUrlNull(it.selectFirst("img.episode-img")?.attr("src"))
-            val epDesc = it.selectFirst("p.episode-desc")?.text()
+        val episodes = document.select("div.episode-card, div.episode-item, div.video-card").mapNotNull {
+            val epTitle = it.selectFirst("h3.episode-title, div.episode-info h3, h3.video-title")?.text() ?: return@mapNotNull null
+            val epHref = fixUrlNull(it.selectFirst("a.episode-link, a")?.attr("href")) ?: return@mapNotNull null
+            val epThumb = fixUrlNull(it.selectFirst("img.episode-img, img")?.attr("src"))
+            val epDesc = it.selectFirst("p.episode-desc, p.episode-description")?.text()
             
             newEpisode(epHref) {
                 this.name = epTitle
@@ -93,8 +93,13 @@ class Tlc : MainAPI() {
         val document = app.get(data).document
 
         // Video kaynağını bul
-        val videoUrl = document.select("video source").firstOrNull()?.attr("src")
+        val videoUrl = document.select("video source, source").firstOrNull()?.attr("src")
             ?: document.select("iframe").firstOrNull()?.attr("src")
+            ?: document.select("div.video-player video").firstOrNull()?.attr("src")
+            ?: document.select("div.video-container video").firstOrNull()?.attr("src")
+            ?: document.select("div.player-container video").firstOrNull()?.attr("src")
+        
+        Log.d("TLC", "videoUrl » ${videoUrl}")
         
         if (videoUrl != null) {
             if (videoUrl.contains("youtube") || videoUrl.contains("vimeo")) {
