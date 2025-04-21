@@ -29,28 +29,83 @@ class Tlc : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val document = app.get("${request.data}").document
-        // div.poster içindeki a etiketlerini seçiyoruz
-        val home = document.select("div.poster > a").mapNotNull { it.toMainPageResult() }
+        // Kategori sayfasındaki içerikleri doğru şekilde seçelim
+        val home = document.select("div.poster").mapNotNull { 
+            try {
+                // Her poster için içindeki a etiketini bulalım
+                val anchor = it.selectFirst("a") ?: return@mapNotNull null
+                
+                // href özelliğini doğrudan alıyoruz ve tam URL'ye çeviriyoruz
+                val href = fixUrlNull(anchor.attr("href"))
+                if (href == null || !href.startsWith(mainUrl)) {
+                    return@mapNotNull null
+                }
+                
+                // Resim için img etiketini seçiyoruz
+                val img = anchor.selectFirst("img") ?: return@mapNotNull null
+                val posterUrl = fixUrlNull(img.attr("src"))
+                
+                // Başlık için alt özelliğini veya href'ten çıkarıyoruz
+                val title = img.attr("alt").takeIf { it.isNotBlank() } 
+                    ?: href.substringAfterLast("/").replace("-", " ").split(" ").joinToString(" ") { 
+                        it.capitalize() 
+                    }
+                
+                Log.d("TLC", "Found item in ${request.name}: title=$title, href=$href")
+                
+                newTvSeriesSearchResponse(title, href, TvType.TvSeries) { 
+                    this.posterUrl = posterUrl 
+                }
+            } catch (e: Exception) {
+                Log.e("TLC", "Error parsing item: ${e.message}")
+                null
+            }
+        }
 
         return newHomePageResponse(request.name, home)
     }
 
-    private fun Element.toMainPageResult(): SearchResponse? {
-        // href özelliğini doğrudan alıyoruz
-        val href = fixUrlNull(this.attr("href")) ?: return null
-        
-        // Resim için img etiketini seçiyoruz
-        val img = this.selectFirst("img") ?: return null
-        val posterUrl = fixUrlNull(img.attr("src"))
-        
-        // Başlık için alt özelliğini veya href'ten çıkarıyoruz
-        val title = img.attr("alt").takeIf { it.isNotBlank() } 
-            ?: href.substringAfterLast("/").replace("-", " ").split(" ").joinToString(" ") { 
-                it.capitalize() 
-            }
+    override suspend fun load(url: String): LoadResponse? {
+        Log.d("TLC", "Loading URL: $url")
+        val document = app.get(url).document
 
-        return newTvSeriesSearchResponse(title, href, TvType.TvSeries) { 
-            this.posterUrl = posterUrl 
+        val title = document.selectFirst("h1.show-title, h1.program-title, div.program-header h1")?.text()?.trim() ?: return null
+        val poster = fixUrlNull(document.selectFirst("div.show-img img, div.program-image img, div.program-header img")?.attr("src"))
+        val description = document.selectFirst("div.show-description, div.program-description, div.program-header p")?.text()?.trim()
+        
+        Log.d("TLC", "Found program: title=$title, poster=$poster")
+        
+        // Bölümleri topla - daha geniş seçiciler kullanarak
+        val episodes = document.select("div.episode-card, div.episode-item, div.video-card, div.episode").mapNotNull {
+            try {
+                val epTitle = it.selectFirst("h3.episode-title, div.episode-info h3, h3.video-title, div.episode-title")?.text() ?: return@mapNotNull null
+                
+                // Link için daha geniş seçiciler kullanıyoruz
+                val epLink = it.selectFirst("a[href]")
+                val epHref = fixUrlNull(epLink?.attr("href")) ?: return@mapNotNull null
+                
+                // Tam URL kontrolü
+                val fullEpHref = if (epHref.startsWith("http")) epHref else "$mainUrl$epHref"
+                
+                val epThumb = fixUrlNull(it.selectFirst("img")?.attr("src"))
+                val epDesc = it.selectFirst("p.episode-desc, p.episode-description, div.episode-description")?.text()
+                
+                Log.d("TLC", "Found episode: title=$epTitle, href=$fullEpHref")
+                
+                newEpisode(fullEpHref) {
+                    this.name = epTitle
+                    this.posterUrl = epThumb
+                    this.description = epDesc
+                }
+            } catch (e: Exception) {
+                Log.e("TLC", "Error parsing episode: ${e.message}")
+                null
+            }
+        }
+
+        return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
+            this.posterUrl = poster
+            this.plot = description
         }
     }
 
