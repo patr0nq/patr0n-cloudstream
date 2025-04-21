@@ -28,15 +28,20 @@ class Tlc : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val document = app.get("${request.data}").document
-        val home = document.select("div.card, div.card-container, div.program-card").mapNotNull { it.toMainPageResult() }
+        val home = document.select("div.poster").mapNotNull { it.toMainPageResult() }
 
         return newHomePageResponse(request.name, home)
     }
 
     private fun Element.toMainPageResult(): SearchResponse? {
-        val title = this.selectFirst("h3.card-title, h3.program-title, div.card-body h3")?.text() ?: return null
-        val href = fixUrlNull(this.selectFirst("a.card-link, a")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img.card-img, img")?.attr("src"))
+        val onclick = this.attr("onclick") ?: return null
+        val href = Regex("location.href='([^']+)'").find(onclick)?.groupValues?.get(1)?.let { fixUrlNull(it) } ?: return null
+        
+        val title = this.selectFirst("div.poster-title")?.text() 
+            ?: this.selectFirst("img")?.attr("alt")
+            ?: return null
+            
+        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
 
         return newTvSeriesSearchResponse(title, href, TvType.TvSeries) { 
             this.posterUrl = posterUrl 
