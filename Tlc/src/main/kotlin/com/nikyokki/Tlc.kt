@@ -100,12 +100,13 @@ class Tlc : MainAPI() {
             if (videoUrl.contains("youtube") || videoUrl.contains("vimeo")) {
                 loadExtractor(videoUrl, mainUrl, subtitleCallback, callback)
             } else {
+                val type = if (videoUrl.endsWith(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
                 callback.invoke(
                     newExtractorLink(
                         source = this.name,
                         name = this.name,
                         url = videoUrl,
-                        ExtractorLinkType.if (videoUrl.endsWith(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
+                        type = type
                     ) {
                         this.referer = mainUrl
                         this.quality = Qualities.Unknown.value
