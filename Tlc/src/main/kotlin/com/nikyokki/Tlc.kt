@@ -28,20 +28,25 @@ class Tlc : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val document = app.get("${request.data}").document
-        val home = document.select("div.poster").mapNotNull { it.toMainPageResult() }
+        // div.poster içindeki a etiketlerini seçiyoruz
+        val home = document.select("div.poster > a").mapNotNull { it.toMainPageResult() }
 
         return newHomePageResponse(request.name, home)
     }
 
     private fun Element.toMainPageResult(): SearchResponse? {
-        val onclick = this.attr("onclick") ?: return null
-        val href = Regex("location.href='([^']+)'").find(onclick)?.groupValues?.get(1)?.let { fixUrlNull(it) } ?: return null
+        // href özelliğini doğrudan alıyoruz
+        val href = fixUrlNull(this.attr("href")) ?: return null
         
-        val title = this.selectFirst("div.poster-title")?.text() 
-            ?: this.selectFirst("img")?.attr("alt")
-            ?: return null
-            
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
+        // Resim için img etiketini seçiyoruz
+        val img = this.selectFirst("img") ?: return null
+        val posterUrl = fixUrlNull(img.attr("src"))
+        
+        // Başlık için alt özelliğini veya href'ten çıkarıyoruz
+        val title = img.attr("alt").takeIf { it.isNotBlank() } 
+            ?: href.substringAfterLast("/").replace("-", " ").split(" ").joinToString(" ") { 
+                it.capitalize() 
+            }
 
         return newTvSeriesSearchResponse(title, href, TvType.TvSeries) { 
             this.posterUrl = posterUrl 
