@@ -102,13 +102,14 @@ class Tlc : MainAPI() {
             } else {
                 callback.invoke(
                     newExtractorLink(
-                        this.name,
-                        this.name,
-                        videoUrl,
-                        mainUrl,
-                        if (videoUrl.endsWith(".m3u8")) Qualities.Unknown.value else Qualities.P720.value,
-                        videoUrl.endsWith(".m3u8")
-                    )
+                        source = this.name,
+                        name = this.name,
+                        url = videoUrl,
+                        ExtractorLinkType.if (videoUrl.endsWith(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
+                    ) {
+                        this.referer = mainUrl
+                        this.quality = Qualities.Unknown.value
+                    }
                 )
             }
         }
