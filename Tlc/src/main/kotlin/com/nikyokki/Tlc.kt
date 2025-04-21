@@ -29,16 +29,56 @@ class Tlc : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val document = app.get("${request.data}").document
-        // Kategori sayfasındaki içerikleri doğru şekilde seçelim
-        val home = document.select("div.poster").mapNotNull { 
+        
+        // Kategori URL'sinden kategori tipini belirleyelim
+        val categoryType = when {
+            request.data.contains("/a-z/") -> "a-z"
+            request.data.contains("/sira-disi-hayatlar/") -> "sira-disi"
+            request.data.contains("/ask-ve-iliski/") -> "ask-iliski"
+            request.data.contains("/yemek/") -> "yemek"
+            request.data.contains("/moda-ve-guzellik/") -> "moda"
+            request.data.contains("/ev-ve-dekorasyon/") -> "ev"
+            else -> "one-cikan"
+        }
+        
+        Log.d("TLC", "Loading category: ${request.name}, type: $categoryType")
+        
+        // Her kategori için özel seçiciler kullanarak içerikleri alalım
+        val home = document.select("div.poster").mapNotNull { poster ->
             try {
+                // Kategori kontrolü yapalım - poster'ın data-category özelliğini kontrol edelim
+                // veya poster'ın içinde bulunduğu container'ı kontrol edelim
+                val posterCategory = poster.attr("data-category") 
+                    ?: poster.parent()?.attr("data-category")
+                    ?: poster.parent()?.parent()?.attr("data-category")
+                    ?: ""
+                
+                // Eğer poster'ın kategorisi belirtilmişse ve bizim kategorimizle eşleşmiyorsa, atla
+                if (posterCategory.isNotEmpty() && !posterCategory.contains(categoryType) && categoryType != "one-cikan") {
+                    return@mapNotNull null
+                }
+                
                 // Her poster için içindeki a etiketini bulalım
-                val anchor = it.selectFirst("a") ?: return@mapNotNull null
+                val anchor = poster.selectFirst("a") ?: return@mapNotNull null
                 
                 // href özelliğini doğrudan alıyoruz ve tam URL'ye çeviriyoruz
                 val href = fixUrlNull(anchor.attr("href"))
                 if (href == null || !href.startsWith(mainUrl)) {
                     return@mapNotNull null
+                }
+                
+                // URL'den program tipini çıkaralım
+                val programType = href.substringAfterLast("/").substringBefore("-")
+                
+                // Kategori kontrolü - URL'den çıkardığımız program tipi ile kategori tipini karşılaştıralım
+                if (categoryType != "one-cikan" && categoryType != "a-z") {
+                    // Eğer program tipi kategori tipiyle eşleşmiyorsa, bazı özel durumlar dışında atla
+                    if (!programType.contains(categoryType) && 
+                        !categoryType.contains(programType) &&
+                        !(categoryType == "sira-disi" && (programType.contains("hayat") || programType.contains("aile"))) &&
+                        !(categoryType == "ask-iliski" && (programType.contains("evli") || programType.contains("ask")))) {
+                        return@mapNotNull null
+                    }
                 }
                 
                 // Resim için img etiketini seçiyoruz
