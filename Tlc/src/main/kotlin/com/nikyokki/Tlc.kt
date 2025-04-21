@@ -127,32 +127,7 @@ class Tlc : MainAPI() {
 
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
 
-    override suspend fun load(url: String): LoadResponse? {
-        val document = app.get(url).document
-
-        val title = document.selectFirst("h1.show-title, h1.program-title")?.text()?.trim() ?: return null
-        val poster = fixUrlNull(document.selectFirst("div.show-img img, div.program-image img")?.attr("src"))
-        val description = document.selectFirst("div.show-description, div.program-description")?.text()?.trim()
-        
-        // Bölümleri topla
-        val episodes = document.select("div.episode-card, div.episode-item, div.video-card").mapNotNull {
-            val epTitle = it.selectFirst("h3.episode-title, div.episode-info h3, h3.video-title")?.text() ?: return@mapNotNull null
-            val epHref = fixUrlNull(it.selectFirst("a.episode-link, a")?.attr("href")) ?: return@mapNotNull null
-            val epThumb = fixUrlNull(it.selectFirst("img.episode-img, img")?.attr("src"))
-            val epDesc = it.selectFirst("p.episode-desc, p.episode-description")?.text()
-            
-            newEpisode(epHref) {
-                this.name = epTitle
-                this.posterUrl = epThumb
-                this.description = epDesc
-            }
-        }
-
-        return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
-            this.posterUrl = poster
-            this.plot = description
-        }
-    }
+    // İkinci load fonksiyonunu kaldırıyoruz, sadece ilk fonksiyonu tutuyoruz
 
     override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
         Log.d("TLC", "data » ${data}")
