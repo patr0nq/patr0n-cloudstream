@@ -18,6 +18,7 @@ class Tlc : MainAPI() {
     override val supportedTypes       = setOf(TvType.TvSeries)
 
     override val mainPage = mainPageOf(
+        "${mainUrl}/kesfet/"                        to "Öne Çıkarılanlar",
         "${mainUrl}/kesfet/a-z/"                    to "A-Z Programlar",
         "${mainUrl}/kesfet/sira-disi-hayatlar/"     to "Sıra Dışı Hayatlar",
         "${mainUrl}/kesfet/ask-ve-iliski/"          to "Aşk ve İlişki",
