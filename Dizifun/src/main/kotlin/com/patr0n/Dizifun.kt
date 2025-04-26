@@ -24,24 +24,24 @@ class Dizifun : MainAPI() {
     )
 
     override val mainPage = mainPageOf(
-        "Diziler" to "diziler",
-        "Filmler" to "filmler",
-        "Netflix" to "netflix",
-        "Disney+" to "disney",
-        "Prime Video" to "primevideo",
-        "HBO Max" to "hbomax",
-        "Exxen" to "exxen",
-        "Tabii" to "tabii-dizileri",
-        "BluTV" to "blutv",
-        "TodTV" to "todtv",
-        "Gain" to "gain",
-        "Hulu" to "hulu",
-        "Paramount+" to "paramount",
-        "Unutulmaz Diziler" to "unutulmaz"
+        "diziler"      to "Diziler",
+        "filmler"      to "Filmler",
+        "netflix"      to "Netflix",
+        "disney"       to "Disney+",
+        "primevideo"   to "Prime Video",
+        "hbomax"       to "HBO Max",
+        "exxen"        to "Exxen",
+        "tabii"        to "Tabii",
+        "blutv"        to "BluTV",
+        "todtv"        to "TodTV",
+        "gain"         to "Gain",
+        "hulu"         to "Hulu",
+        "paramount"    to "Paramount+",
+        "unutulmaz"    to "Unutulmaz Diziler"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val url = if (request.name == "Diziler" || request.name == "Filmler") {
+        val url = if (request.data == "diziler" || request.data == "filmler") {
             "$mainUrl/${request.data}"
         } else {
             "$mainUrl/${request.data}-dizileri"
@@ -52,16 +52,14 @@ class Dizifun : MainAPI() {
             it.toMainPageResult()
         }
         
-        return HomePageResponse(
-            listOf(HomePageList(request.name, home))
-        )
+        return newHomePageResponse(request.name, home)
     }
 
     private fun Element.toMainPageResult(): SearchResponse? {
-        val title = this.select("h5.uk-panel-title")?.text() ?: return null
-        val href = this.select("a.uk-position-cover")?.attr("href") ?: return null
-        val posterUrl = this.select("img")?.attr("src")
-        val year = this.select("span.uk-display-block.uk-text-muted")?.text()?.trim()?.toIntOrNull()
+        val title = this.selectFirst("h5.uk-panel-title")?.text() ?: return null
+        val href = fixUrlNull(this.selectFirst("a.uk-position-cover")?.attr("href")) ?: return null
+        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
+        val year = this.selectFirst("span.uk-display-block.uk-text-muted")?.text()?.trim()?.toIntOrNull()
         val type = if (href.contains("/dizi/")) TvType.TvSeries else TvType.Movie
 
         return newMovieSearchResponse(title, href, type) {
@@ -78,10 +76,10 @@ class Dizifun : MainAPI() {
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
-        val title = this.select("h5.uk-panel-title")?.text() ?: return null
-        val href = this.select("a.uk-position-cover")?.attr("href") ?: return null
-        val posterUrl = this.select("img")?.attr("src")
-        val year = this.select("span.uk-display-block.uk-text-muted")?.text()?.trim()?.toIntOrNull()
+        val title = this.selectFirst("h5.uk-panel-title")?.text() ?: return null
+        val href = fixUrlNull(this.selectFirst("a.uk-position-cover")?.attr("href")) ?: return null
+        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
+        val year = this.selectFirst("span.uk-display-block.uk-text-muted")?.text()?.trim()?.toIntOrNull()
         val type = if (href.contains("/dizi/")) TvType.TvSeries else TvType.Movie
 
         return newMovieSearchResponse(title, href, type) {
@@ -93,29 +91,29 @@ class Dizifun : MainAPI() {
     override suspend fun load(url: String): LoadResponse? {
         val document = app.get(url).document
         
-        val title = document.select("h1.text-bold")?.text() ?: return null
-        val poster = document.select("div.media-cover img")?.attr("src")
-        val year = document.select("ul.subnav li")?.text()?.substringAfter("Dizi Yılı: ")?.toIntOrNull()
-        val description = document.select("p.text-muted")?.text()
-        val type = if (document.select("div.series-info")?.text()?.contains("Dizi") == true) TvType.TvSeries else TvType.Movie
-        val rating = document.select("span.rating")?.text()?.toRatingInt()
-        val duration = document.select("span.runtime")?.text()?.split(" ")?.firstOrNull()?.toIntOrNull()
-        val tags = document.select("div.genres a")?.map { it.text() }
-        val recommendations = document.select("div.related-items div.uk-overlay")?.mapNotNull { it.toRecommendationResult() }
-        val actors = document.select("div.actors-container div.actor-card")?.mapNotNull {
+        val title = document.selectFirst("h1.text-bold")?.text()?.trim() ?: return null
+        val poster = fixUrlNull(document.selectFirst("div.media-cover img")?.attr("src"))
+        val year = document.selectFirst("ul.subnav li")?.text()?.substringAfter("Dizi Yılı: ")?.toIntOrNull()
+        val description = document.selectFirst("p.text-muted")?.text()?.trim()
+        val type = if (document.selectFirst("div.series-info")?.text()?.contains("Dizi") == true) TvType.TvSeries else TvType.Movie
+        val rating = document.selectFirst("span.rating")?.text()?.toRatingInt()
+        val duration = document.selectFirst("span.runtime")?.text()?.split(" ")?.firstOrNull()?.toIntOrNull()
+        val tags = document.select("div.genres a").map { it.text() }
+        val recommendations = document.select("div.related-items div.uk-overlay").mapNotNull { it.toRecommendationResult() }
+        val actors = document.select("div.actors-container div.actor-card").mapNotNull {
             Actor(
-                it.select("span.actor-name")?.text() ?: return@mapNotNull null,
-                it.select("img")?.attr("src")
+                it.selectFirst("span.actor-name")?.text() ?: return@mapNotNull null,
+                fixUrlNull(it.selectFirst("img")?.attr("src"))
             )
         }
-        val trailer = document.select("iframe")?.attr("src")?.let { 
-            if (it.contains("youtube")) it else null 
+        val trailer = document.selectFirst("iframe")?.attr("src")?.let { 
+            if (it.contains("youtube")) fixUrl(it) else null 
         }
 
         val episodes = if (type == TvType.TvSeries) {
             document.select("div.episode-button").mapNotNull {
-                val episode = it.text().substringAfter("Bölüm").toIntOrNull() ?: return@mapNotNull null
-                val data = it.parent()?.attr("href") ?: return@mapNotNull null
+                val episode = it.text().substringAfter("Bölüm").trim().toIntOrNull() ?: return@mapNotNull null
+                val data = fixUrlNull(it.parent()?.attr("href")) ?: return@mapNotNull null
                 newEpisode(data) {
                     this.episode = episode
                     this.name = "Bölüm $episode"
@@ -132,7 +130,7 @@ class Dizifun : MainAPI() {
                 this.duration = duration
                 this.tags = tags
                 this.recommendations = recommendations
-                addActors(actors ?: emptyList())
+                addActors(actors)
                 addTrailer(trailer)
             }
         } else {
@@ -144,16 +142,16 @@ class Dizifun : MainAPI() {
                 this.duration = duration
                 this.tags = tags
                 this.recommendations = recommendations
-                addActors(actors ?: emptyList())
+                addActors(actors)
                 addTrailer(trailer)
             }
         }
     }
 
     private fun Element.toRecommendationResult(): SearchResponse? {
-        val title = this.select("h5.uk-panel-title")?.text() ?: return null
-        val href = this.select("a.uk-position-cover")?.attr("href") ?: return null
-        val posterUrl = this.select("img")?.attr("src")
+        val title = this.selectFirst("h5.uk-panel-title")?.text() ?: return null
+        val href = fixUrlNull(this.selectFirst("a.uk-position-cover")?.attr("href")) ?: return null
+        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
         val type = if (href.contains("/dizi/")) TvType.TvSeries else TvType.Movie
 
         return newMovieSearchResponse(title, href, type) {
@@ -170,51 +168,49 @@ class Dizifun : MainAPI() {
         Log.d("Dizifun", "Loading links for: $data")
         try {
             val document = app.get(data).document
-            val videoUrl = document.select("iframe")?.attr("src")
+            val videoUrl = fixUrlNull(document.selectFirst("iframe")?.attr("src")) ?: return false
             
-            if (!videoUrl.isNullOrBlank()) {
-                val quality = when {
-                    videoUrl.contains("1080p") -> Qualities.P1080.value
-                    videoUrl.contains("720p") -> Qualities.P720.value
-                    videoUrl.contains("480p") -> Qualities.P480.value
-                    else -> Qualities.Unknown.value
-                }
-
-                val source = when {
-                    videoUrl.contains("youtube") -> "YouTube"
-                    videoUrl.contains("vimeo") -> "Vimeo"
-                    else -> "Direct"
-                }
-
-                callback.invoke(
-                    newExtractorLink(
-                        source = name,
-                        name = source,
-                        url = videoUrl,
-                        referer = mainUrl,
-                        quality = quality,
-                        isM3u8 = videoUrl.contains(".m3u8")
-                    )
-                )
-
-                document.select("track")?.forEach { track ->
-                    val subUrl = track.attr("src")
-                    if (subUrl.isNotBlank()) {
-                        subtitleCallback.invoke(
-                            SubtitleFile(
-                                track.attr("label") ?: "Türkçe",
-                                subUrl
-                            )
-                        )
-                    }
-                }
-
-                return true
+            val quality = when {
+                videoUrl.contains("1080p") -> Qualities.P1080.value
+                videoUrl.contains("720p") -> Qualities.P720.value
+                videoUrl.contains("480p") -> Qualities.P480.value
+                else -> Qualities.Unknown.value
             }
+
+            val source = when {
+                videoUrl.contains("youtube") -> "YouTube"
+                videoUrl.contains("vimeo") -> "Vimeo"
+                else -> "Direct"
+            }
+
+            callback.invoke(
+                newExtractorLink(
+                    source = name,
+                    name = source,
+                    url = videoUrl,
+                    referer = mainUrl,
+                    quality = quality,
+                    isM3u8 = videoUrl.contains(".m3u8")
+                )
+            )
+
+            document.select("track").forEach { track ->
+                val subUrl = fixUrlNull(track.attr("src")) ?: return@forEach
+                if (subUrl.isNotBlank()) {
+                    subtitleCallback.invoke(
+                        SubtitleFile(
+                            track.attr("label") ?: "Türkçe",
+                            subUrl
+                        )
+                    )
+                }
+            }
+
+            return true
         } catch (e: Exception) {
             Log.e("Dizifun", "Error loading links: ${e.message}")
             e.printStackTrace()
+            return false
         }
-        return false
     }
 }
