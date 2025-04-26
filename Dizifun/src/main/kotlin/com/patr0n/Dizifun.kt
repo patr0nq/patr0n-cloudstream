@@ -60,14 +60,14 @@ class Dizifun : MainAPI() {
     // Debug için isteklerin durumunu logla
     private fun logResponse(url: String, response: String) {
         if (response.length > 200) {
-            Log.d(this.name, "Response for $url: ${response.substring(0, 200)}...")
+            Log.d(this@Dizifun.name, "Response for $url: ${response.substring(0, 200)}...")
         } else {
-            Log.d(this.name, "Response for $url: $response")
+            Log.d(this@Dizifun.name, "Response for $url: $response")
         }
     }
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        Log.d(this.name, "Loading main page: ${request.data}")
+        Log.d(this@Dizifun.name, "Loading main page: ${request.data}")
         
         // Sayfa içeriğini al, headers ekleyerek
         val response = app.get(
@@ -88,7 +88,7 @@ class Dizifun : MainAPI() {
         
         // Netflix ve diğer kategori sayfaları için özel olarak bu seçiciyi kullan
         val specialCategoryItems = document.select("div.uk-overlay.uk-overlay-hover")
-        Log.d(this.name, "Found ${specialCategoryItems.size} special category items in ${request.name}")
+        Log.d(this@Dizifun.name, "Found ${specialCategoryItems.size} special category items in ${request.name}")
         
         specialCategoryItems.forEach { element ->
             val parent = element.parent() ?: return@forEach
@@ -131,7 +131,7 @@ class Dizifun : MainAPI() {
                 "article" // Bazı kategorilerde içerikler article içinde olabilir
             )
             
-            Log.d(this.name, "Found total ${allContentItems.size} items in category: ${request.name}")
+            Log.d(this@Dizifun.name, "Found total ${allContentItems.size} items in category: ${request.name}")
             
             allContentItems.forEach { element ->
                 var result: SearchResponse? = null
@@ -149,7 +149,7 @@ class Dizifun : MainAPI() {
             }
         }
         
-        Log.d(this.name, "Total processed items for ${request.name}: ${home.size}")
+        Log.d(this@Dizifun.name, "Total processed items for ${request.name}: ${home.size}")
         return newHomePageResponse(request.name, home)
     }
 
@@ -258,10 +258,10 @@ class Dizifun : MainAPI() {
                    href.contains("tabii-dizileri") || href.contains("hulu") || href.contains("todtv") || 
                    href.contains("paramount") || href.contains("unutulmaz") || 
                    (title.contains("Sezon") && !title.contains("Film"))) {
-            Log.d(this.name, "İçerik tipi: Dizi olarak belirlendi (URL: $href)")
+            Log.d(this@Dizifun.name, "İçerik tipi: Dizi olarak belirlendi (URL: $href)")
             TvType.TvSeries
         } else {
-            Log.d(this.name, "İçerik tipi: Film olarak belirlendi (URL: $href)")
+            Log.d(this@Dizifun.name, "İçerik tipi: Film olarak belirlendi (URL: $href)")
             TvType.Movie
         }
 
@@ -273,14 +273,14 @@ class Dizifun : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val searchUrl = "$mainUrl/arama?query=$query"
-        Log.d(this.name, "Searching: $searchUrl")
+        Log.d(this@Dizifun.name, "Searching: $searchUrl")
         
         val document = app.get(searchUrl, headers = defaultHeaders).document
         val searchResults = ArrayList<SearchResponse>()
         
         // Ana arama sonuçlarını tara
         val colItems = document.select("div.col-md-2")
-        Log.d(this.name, "Found ${colItems.size} col-md-2 items in search")
+        Log.d(this@Dizifun.name, "Found ${colItems.size} col-md-2 items in search")
         
         colItems.forEach { element ->
             val result = element.toMainPageResult()
@@ -292,7 +292,7 @@ class Dizifun : MainAPI() {
         // Alternatif arama sonuçlarını tara
         if (searchResults.isEmpty()) {
             val altItems = document.select("div.uk-overlay.uk-overlay-hover, div.editor_sec-item, div.movies_recent-item, div.featuredseries_recent-item, div.episode-item")
-            Log.d(this.name, "Found ${altItems.size} alternative items in search")
+            Log.d(this@Dizifun.name, "Found ${altItems.size} alternative items in search")
             
             altItems.forEach { element ->
                 val result = element.toSearchResult()
@@ -302,7 +302,7 @@ class Dizifun : MainAPI() {
             }
         }
         
-        Log.d(this.name, "Total search results: ${searchResults.size}")
+        Log.d(this@Dizifun.name, "Total search results: ${searchResults.size}")
         return searchResults
     }
 
@@ -364,12 +364,12 @@ class Dizifun : MainAPI() {
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        Log.d(this.name, "Loading details: $url")
+        Log.d(this@Dizifun.name, "Loading details: $url")
         
         try {
             val response = app.get(url, headers = defaultHeaders)
-            Log.d(this.name, "HTTP Status: ${response.code}")
-            Log.d(this.name, "Content Type: ${response.headers["Content-Type"]}")
+            Log.d(this@Dizifun.name, "HTTP Status: ${response.code}")
+            Log.d(this@Dizifun.name, "Content Type: ${response.headers["Content-Type"]}")
             
             val document = response.document
             val htmlContent = document.outerHtml()
@@ -377,46 +377,46 @@ class Dizifun : MainAPI() {
 
             // Başlığı bul
             var title = document.selectFirst("h1.text-bold, div.titlemob, div.head-title > h1")?.text()?.trim()
-            Log.d(this.name, "Found title: $title")
+            Log.d(this@Dizifun.name, "Found title: $title")
             if (title.isNullOrBlank()) {
-                Log.d(this.name, "Title not found, trying alternative selectors")
+                Log.d(this@Dizifun.name, "Title not found, trying alternative selectors")
                 // Try alternative selectors for title
                 title = document.selectFirst("h1, .title, .movie-title, .dizi-title")?.text()?.trim()
-                Log.d(this.name, "Alternative title found: $title")
+                Log.d(this@Dizifun.name, "Alternative title found: $title")
                 if (title.isNullOrBlank()) {
-                    Log.e(this.name, "No title found for $url")
+                    Log.e(this@Dizifun.name, "No title found for $url")
                     return null
                 }
             }
             
             // Posteri bul - web sayfası içerik resmi kullanabilir
             val poster = fixUrlNull(document.selectFirst("div.media-cover img, img.imgboyut, img.responsive-img, div.platformmobile img")?.attr("src"))
-            Log.d(this.name, "Found poster: $poster")
+            Log.d(this@Dizifun.name, "Found poster: $poster")
             
             // Yılı bul
             val yearText = document.select("ul.subnav li, div.content_data").find { it.text().contains("Yıl:") || it.text().contains("Dizi Yılı:") }?.text() ?: ""
             val year = yearText.substringAfter("Yıl:").substringAfter("Dizi Yılı:").trim().toIntOrNull()
-            Log.d(this.name, "Found year: $year")
+            Log.d(this@Dizifun.name, "Found year: $year")
             
             // Açıklamayı bul
             val description = document.selectFirst("p.text-muted, div.descmobi, div.content_data > p")?.text()?.trim()
                 ?: document.select("div.content_data, div.detail-text, div.description").firstOrNull()?.text()?.trim()
-            Log.d(this.name, "Found description: ${description?.take(50)}...")
+            Log.d(this@Dizifun.name, "Found description: ${description?.take(50)}...")
             
             // İçerik tipini belirle
-            val type = if (href.contains("/dizi/") || href.contains("/diziler/") || href.contains("sezon") || href.contains("bolum") || 
-                       href.contains("netflix") || href.contains("disney") || href.contains("primevideo") || 
-                       href.contains("blutv") || href.contains("gain") || href.contains("exxen") || 
-                       href.contains("tabii-dizileri") || href.contains("hulu") || href.contains("todtv") || 
-                       href.contains("paramount") || href.contains("unutulmaz") || 
+            val type = if (url.contains("/dizi/") || url.contains("/diziler/") || url.contains("sezon") || url.contains("bolum") || 
+                       url.contains("netflix") || url.contains("disney") || url.contains("primevideo") || 
+                       url.contains("blutv") || url.contains("gain") || url.contains("exxen") || 
+                       url.contains("tabii-dizileri") || url.contains("hulu") || url.contains("todtv") || 
+                       url.contains("paramount") || url.contains("unutulmaz") || 
                        (title?.contains("Sezon", ignoreCase = true) == true && title?.contains("Film", ignoreCase = true) != true)) {
-                Log.d(this.name, "İçerik tipi: Dizi olarak belirlendi (URL: $href)")
+                Log.d(this@Dizifun.name, "İçerik tipi: Dizi olarak belirlendi (URL: $url)")
                 TvType.TvSeries
             } else {
-                Log.d(this.name, "İçerik tipi: Film olarak belirlendi (URL: $href)")
+                Log.d(this@Dizifun.name, "İçerik tipi: Film olarak belirlendi (URL: $url)")
                 TvType.Movie
             }
-            Log.d(this.name, "Content type: $type")
+            Log.d(this@Dizifun.name, "Content type: $type")
             
             // Ek bilgileri bul
             val rating = document.selectFirst("span.rating, span.rate")?.text()?.toRatingInt()
@@ -428,7 +428,7 @@ class Dizifun : MainAPI() {
             
             // Kategori bilgilerini bul
             val tags = document.select("div.genres a, ul.subnav li a, div.series-info, div.content_data span").map { it.text().trim() }
-            Log.d(this.name, "Found tags: $tags")
+            Log.d(this@Dizifun.name, "Found tags: $tags")
             
             // Oyuncuları bul
             val actors = document.select("div.actors-container div.actor-card, div.oyuncular span").mapNotNull {
@@ -440,11 +440,11 @@ class Dizifun : MainAPI() {
                 
                 Actor(actorName, actorImg)
             }
-            Log.d(this.name, "Found ${actors.size} actors")
+            Log.d(this@Dizifun.name, "Found ${actors.size} actors")
             
             // Fragmanı bul
             val trailer = document.selectFirst("iframe[src*=youtube], a.trailer-button")?.attr("src")?.let { fixUrl(it) }
-            Log.d(this.name, "Found trailer: $trailer")
+            Log.d(this@Dizifun.name, "Found trailer: $trailer")
 
             // Bölümleri bul (dizi ise)
             val episodes = if (type == TvType.TvSeries) {
@@ -452,10 +452,10 @@ class Dizifun : MainAPI() {
                 
                 // Season/Tab kutularını bul
                 val seasonTabs = document.select("div.tabcontent2, div.seasons, div.episodes-container, div.episodeitem, div.episodelist, div.bolumler, div.seasons-bk")
-                Log.d(this.name, "Sezon tabları: ${seasonTabs.size}")
+                Log.d(this@Dizifun.name, "Sezon tabları: ${seasonTabs.size}")
                 
                 if (seasonTabs.isNotEmpty()) {
-                    Log.d(this.name, "Found ${seasonTabs.size} season tabs")
+                    Log.d(this@Dizifun.name, "Found ${seasonTabs.size} season tabs")
                     seasonTabs.forEach { seasonTab ->
                         // Sezon ID'sini bul (season1, season2 gibi ID'ler veya sıra numarası)
                         val seasonId = seasonTab.attr("id").replace(Regex("[^0-9]"), "").toIntOrNull() 
@@ -463,13 +463,13 @@ class Dizifun : MainAPI() {
                         
                         // Her sezon tab'ındaki bölümleri bul
                         val episodeElements = seasonTab.select("div.bolumtitle a, a[href*=episode], a.episode-button, a[href*=bolum], div.episode-button, li.episode a, a.btn-episode, a[href*=izle], a.dizi-parts")
-                        Log.d(this.name, "Found ${episodeElements.size} episodes in season $seasonId")
+                        Log.d(this@Dizifun.name, "Found ${episodeElements.size} episodes in season $seasonId")
                         
                         episodeElements.forEach { episodeElement ->
                             val name = episodeElement.text().trim()
                             val href = episodeElement.attr("href")
                             
-                            Log.d(this.name, "Episode element: name=$name, href=$href")
+                            Log.d(this@Dizifun.name, "Episode element: name=$name, href=$href")
                             
                             // Bölüm numarasını extract et
                             val episodeNum = when {
@@ -504,7 +504,7 @@ class Dizifun : MainAPI() {
                                 else -> 1 // Bölüm numarası bulunamazsa 1 atanır
                             }
                             
-                            Log.d(this.name, "Extracted episode number: $episodeNum")
+                            Log.d(this@Dizifun.name, "Extracted episode number: $episodeNum")
                             
                             // URL'yi fix
                             val data = if (href.isNotBlank()) {
@@ -514,7 +514,7 @@ class Dizifun : MainAPI() {
                             }
                             
                             if (data == null) {
-                                Log.d(this.name, "Skipping episode with invalid URL")
+                                Log.d(this@Dizifun.name, "Skipping episode with invalid URL")
                                 return@forEach
                             }
                             
@@ -524,7 +524,7 @@ class Dizifun : MainAPI() {
                                 data
                             }
                             
-                            Log.d(this.name, "Adding episode: name=$name, season=$seasonId, episode=$episodeNum, url=$fullUrl")
+                            Log.d(this@Dizifun.name, "Adding episode: name=$name, season=$seasonId, episode=$episodeNum, url=$fullUrl")
                             
                             allEpisodes.add(
                                 newEpisode(fullUrl) {
@@ -538,13 +538,13 @@ class Dizifun : MainAPI() {
                 } else {
                     // Alternatif bölüm seçicisi - sezon tabları yoksa
                     val episodeElements = document.select("div.episode-button, div.bolumtitle a, a.episode-button, div.episodes div, div.episodes a, a[href*=bolum], li.episode a, a.btn-episode, a[href*=izle], a.dizi-parts, a[href*=sezon], a[href*=season]")
-                    Log.d(this.name, "Found ${episodeElements.size} episode elements (alternative selector)")
+                    Log.d(this@Dizifun.name, "Found ${episodeElements.size} episode elements (alternative selector)")
                     
                     episodeElements.forEach { episodeElement ->
                         val name = episodeElement.text().trim()
                         val href = episodeElement.attr("href")
                         
-                        Log.d(this.name, "Alternative episode element: name=$name, href=$href")
+                        Log.d(this@Dizifun.name, "Alternative episode element: name=$name, href=$href")
                         
                         if (name.isNotBlank() && href.isNotBlank()) {
                             // Sezon numarasını bulmaya çalış
@@ -614,7 +614,7 @@ class Dizifun : MainAPI() {
                                     data
                                 }
                                 
-                                Log.d(this.name, "Adding alternative episode: name=$name, season=$seasonNum, episode=$episodeNum, url=$fullUrl")
+                                Log.d(this@Dizifun.name, "Adding alternative episode: name=$name, season=$seasonNum, episode=$episodeNum, url=$fullUrl")
                                 
                                 allEpisodes.add(
                                     newEpisode(fullUrl) {
@@ -629,7 +629,7 @@ class Dizifun : MainAPI() {
                     
                     // Eğer hala bölüm bulunamadıysa, bu içerik tek bölümlük bir dizi/film olabilir
                     if (allEpisodes.isEmpty()) {
-                        Log.d(this.name, "No episodes found, treating as a single episode")
+                        Log.d(this@Dizifun.name, "No episodes found, treating as a single episode")
                         allEpisodes.add(
                             newEpisode(url) {
                                 this.name = title
@@ -640,7 +640,7 @@ class Dizifun : MainAPI() {
                     }
                 }
                 
-                Log.d(this.name, "Total episodes found: ${allEpisodes.size}")
+                Log.d(this@Dizifun.name, "Total episodes found: ${allEpisodes.size}")
                 allEpisodes
             } else null
 
@@ -668,7 +668,7 @@ class Dizifun : MainAPI() {
                 }
             }
         } catch (e: Exception) {
-            Log.e(this.name, "Video detayları yüklenirken hata: ${e.message}")
+            Log.e(this@Dizifun.name, "Video detayları yüklenirken hata: ${e.message}")
             e.printStackTrace()
             return null
         }
@@ -681,7 +681,7 @@ class Dizifun : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         val url = data
-        Log.d(this.name, "Video linkleri yükleniyor: $url")
+        Log.d(this@Dizifun.name, "Video linkleri yükleniyor: $url")
         
         try {
             val doc = app.get(url, headers = mapOf(
@@ -695,7 +695,7 @@ class Dizifun : MainAPI() {
                 // İframe src'yi kontrol et ve gerekirse decode et
                 val iframeSrc = checkAndDecodeIframeSrc(rawIframeSrc)
                 val normalizedIframeSrc = normalizeUrl(iframeSrc)
-                Log.d(this.name, "İframe kaynağı bulundu: $normalizedIframeSrc")
+                Log.d(this@Dizifun.name, "İframe kaynağı bulundu: $normalizedIframeSrc")
                 
                 // İframe kaynağı ile ilgili detaylı bilgileri logla
                 logSourceInfo(normalizedIframeSrc)
@@ -713,17 +713,17 @@ class Dizifun : MainAPI() {
                     val hexUrls = findHexEncodedUrls(iframeDoc)
                     
                     if (hexUrls.isEmpty()) {
-                        Log.d(this.name, "Hex-encoded URL bulunamadı, alternatif arama yöntemleri deneniyor...")
+                        Log.d(this@Dizifun.name, "Hex-encoded URL bulunamadı, alternatif arama yöntemleri deneniyor...")
                         
                         // Doğrudan video tag'ı ara
                         val videoSources = doc.select("video source").map { it.attr("src") }
                         if (videoSources.isNotEmpty()) {
-                            Log.d(this.name, "Video kaynak tag'ları bulundu: ${videoSources.size}")
+                            Log.d(this@Dizifun.name, "Video kaynak tag'ları bulundu: ${videoSources.size}")
                             videoSources.forEach { sourceUrl ->
                                 val normalizedSourceUrl = normalizeUrl(sourceUrl)
                                 callback.invoke(
                                     newExtractorLink(
-                                        this.name,
+                                        this@Dizifun.name,
                                         "Direct (Video Tag)",
                                         normalizedSourceUrl,
                                         if (normalizedSourceUrl.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
@@ -735,13 +735,13 @@ class Dizifun : MainAPI() {
                             }
                         }
                     } else {
-                        Log.d(this.name, "${hexUrls.size} hex-encoded URL bulundu")
+                        Log.d(this@Dizifun.name, "${hexUrls.size} hex-encoded URL bulundu")
                     }
                     
                     // Bulunan URL'leri işle
                     hexUrls.forEach { videoUrl ->
                         val normalizedVideoUrl = normalizeUrl(videoUrl)
-                        Log.d(this.name, "Bulunan video URL'si: $normalizedVideoUrl")
+                        Log.d(this@Dizifun.name, "Bulunan video URL'si: $normalizedVideoUrl")
                         
                         // Video kalitesini belirle
                         val quality = when {
@@ -764,7 +764,7 @@ class Dizifun : MainAPI() {
                         // .m3u8 dosyaları için özel işlem
                         callback.invoke(
                             newExtractorLink(
-                                this.name,
+                                this@Dizifun.name,
                                 if (normalizedVideoUrl.contains(".m3u8")) "${sourceName} HLS" else sourceName,
                                 normalizedVideoUrl,
                                 if (normalizedVideoUrl.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
@@ -778,11 +778,11 @@ class Dizifun : MainAPI() {
                     // Alternatif embed URL'leri kontrol et
                     val altEmbeds = doc.select("a.alter_video").map { it.attr("href") }
                     if (altEmbeds.isNotEmpty()) {
-                        Log.d(this.name, "Alternatif embedler bulundu: ${altEmbeds.size}")
+                        Log.d(this@Dizifun.name, "Alternatif embedler bulundu: ${altEmbeds.size}")
                         altEmbeds.forEach { embedUrl ->
                             try {
                                 val normalizedEmbedUrl = normalizeUrl(embedUrl)
-                                Log.d(this.name, "Alternatif embed işleniyor: $normalizedEmbedUrl")
+                                Log.d(this@Dizifun.name, "Alternatif embed işleniyor: $normalizedEmbedUrl")
                                 
                                 val embedDoc = app.get(
                                     normalizedEmbedUrl,
@@ -793,7 +793,7 @@ class Dizifun : MainAPI() {
                                 ).text
                                 
                                 val altHexUrls = findHexEncodedUrls(embedDoc)
-                                Log.d(this.name, "Alternatif embeddeki hex URL sayısı: ${altHexUrls.size}")
+                                Log.d(this@Dizifun.name, "Alternatif embeddeki hex URL sayısı: ${altHexUrls.size}")
                                 
                                 altHexUrls.forEach { videoUrl ->
                                     val normalizedAltVideoUrl = normalizeUrl(videoUrl)
@@ -817,7 +817,7 @@ class Dizifun : MainAPI() {
                                     
                                     callback.invoke(
                                         newExtractorLink(
-                                            this.name,
+                                            this@Dizifun.name,
                                             if (normalizedAltVideoUrl.contains(".m3u8")) "${sourceName} HLS" else sourceName,
                                             normalizedAltVideoUrl,
                                             if (normalizedAltVideoUrl.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
@@ -828,7 +828,7 @@ class Dizifun : MainAPI() {
                                     )
                                 }
                             } catch (e: Exception) {
-                                Log.e(this.name, "Alternatif embed yüklenirken hata: ${e.message}")
+                                Log.e(this@Dizifun.name, "Alternatif embed yüklenirken hata: ${e.message}")
                             }
                         }
                     }
@@ -841,7 +841,7 @@ class Dizifun : MainAPI() {
                         
                         if (subUrl.isNotEmpty()) {
                             val normalizedSubUrl = normalizeUrl(subUrl)
-                            Log.d(this.name, "Altyazı bulundu: $subLabel - $normalizedSubUrl")
+                            Log.d(this@Dizifun.name, "Altyazı bulundu: $subLabel - $normalizedSubUrl")
                             subtitleCallback.invoke(
                                 SubtitleFile(
                                     subLang,
@@ -851,20 +851,20 @@ class Dizifun : MainAPI() {
                         }
                     }
                 } catch (e: Exception) {
-                    Log.e(this.name, "İframe içeriği işlenirken hata: ${e.message}")
+                    Log.e(this@Dizifun.name, "İframe içeriği işlenirken hata: ${e.message}")
                 }
             } else {
-                Log.e(this.name, "İframe bulunamadı, doğrudan video tag'ı aranıyor...")
+                Log.e(this@Dizifun.name, "İframe bulunamadı, doğrudan video tag'ı aranıyor...")
                 
                 // Doğrudan video tag'ı ara
                 val videoSources = doc.select("video source").map { it.attr("src") }
                 if (videoSources.isNotEmpty()) {
-                    Log.d(this.name, "Video kaynak tag'ları bulundu: ${videoSources.size}")
+                    Log.d(this@Dizifun.name, "Video kaynak tag'ları bulundu: ${videoSources.size}")
                     videoSources.forEach { sourceUrl ->
                         val normalizedSourceUrl = normalizeUrl(sourceUrl)
                         callback.invoke(
                             newExtractorLink(
-                                this.name,
+                                this@Dizifun.name,
                                 "Direct (Video Tag)",
                                 normalizedSourceUrl,
                                 if (normalizedSourceUrl.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
@@ -875,11 +875,11 @@ class Dizifun : MainAPI() {
                         )
                     }
                 } else {
-                    Log.e(this.name, "Hiçbir video kaynağı bulunamadı")
+                    Log.e(this@Dizifun.name, "Hiçbir video kaynağı bulunamadı")
                 }
             }
         } catch (e: Exception) {
-            Log.e(this.name, "Video linkleri yüklenirken hata: ${e.message}")
+            Log.e(this@Dizifun.name, "Video linkleri yüklenirken hata: ${e.message}")
             return false
         }
         
@@ -948,7 +948,7 @@ class Dizifun : MainAPI() {
                                 foundUrls.add(decodedString)
                             }
                         } catch (e: Exception) {
-                            Log.e(this.name, "Hex decode error: ${e.message}")
+                            Log.e(this@Dizifun.name, "Hex decode error: ${e.message}")
                         }
                     }
                 }
@@ -968,7 +968,7 @@ class Dizifun : MainAPI() {
                         foundUrls.add(decodedValue)
                     }
                 } catch (e: Exception) {
-                    Log.e(this.name, "Hex function call decode error: ${e.message}")
+                    Log.e(this@Dizifun.name, "Hex function call decode error: ${e.message}")
                 }
             }
             
@@ -986,11 +986,11 @@ class Dizifun : MainAPI() {
                         foundUrls.add(decodedValue)
                     }
                 } catch (e: Exception) {
-                    Log.e(this.name, "Direct hex decode error: ${e.message}")
+                    Log.e(this@Dizifun.name, "Direct hex decode error: ${e.message}")
                 }
             }
         } catch (e: Exception) {
-            Log.e(this.name, "Error finding hex URLs: ${e.message}")
+            Log.e(this@Dizifun.name, "Error finding hex URLs: ${e.message}")
         }
         
         // Tekrarlanan URL'leri temizle
@@ -1017,11 +1017,11 @@ class Dizifun : MainAPI() {
                     // HTTP ile başlayan ilk URL'yi döndür
                     val httpUrl = possibleUrls.firstOrNull { it.startsWith("http") }
                     if (httpUrl != null) {
-                        Log.d(this.name, "Javascript'ten çözülen URL: $httpUrl")
+                        Log.d(this@Dizifun.name, "Javascript'ten çözülen URL: $httpUrl")
                         return httpUrl
                     }
                 } catch (e: Exception) {
-                    Log.e(this.name, "Javascript iframe src çözülemedi: ${e.message}")
+                    Log.e(this@Dizifun.name, "Javascript iframe src çözülemedi: ${e.message}")
                 }
             }
         }
@@ -1031,11 +1031,11 @@ class Dizifun : MainAPI() {
             try {
                 val decoded = hexToString(iframeSrc)
                 if (decoded.startsWith("http")) {
-                    Log.d(this.name, "Hex-encoded iframe src çözüldü: $decoded")
+                    Log.d(this@Dizifun.name, "Hex-encoded iframe src çözüldü: $decoded")
                     return decoded
                 }
             } catch (e: Exception) {
-                Log.e(this.name, "Hex iframe src çözülemedi: ${e.message}")
+                Log.e(this@Dizifun.name, "Hex iframe src çözülemedi: ${e.message}")
             }
         }
         
@@ -1046,22 +1046,22 @@ class Dizifun : MainAPI() {
     // Debug için bilgileri logla - suspend fonksiyon olarak değiştirildi
     private suspend fun logSourceInfo(url: String) {
         try {
-            Log.d(this.name, "URL işleniyor: $url")
+            Log.d(this@Dizifun.name, "URL işleniyor: $url")
             val response = app.get(url, headers = mapOf(
                 "User-Agent" to USER_AGENT,
                 "Referer" to mainUrl
             ))
-            Log.d(this.name, "HTTP Durum: ${response.code}")
-            Log.d(this.name, "Content-Type: ${response.headers["Content-Type"]}")
+            Log.d(this@Dizifun.name, "HTTP Durum: ${response.code}")
+            Log.d(this@Dizifun.name, "Content-Type: ${response.headers["Content-Type"]}")
             
             val contentLength = response.headers["Content-Length"]?.toIntOrNull() ?: 0
-            Log.d(this.name, "İçerik Boyutu: ${contentLength / 1024} KB")
+            Log.d(this@Dizifun.name, "İçerik Boyutu: ${contentLength / 1024} KB")
             
             // İlk 100 karakteri logla
             val previewContent = response.text.take(100).replace("\n", " ")
-            Log.d(this.name, "İçerik Önizleme: $previewContent...")
+            Log.d(this@Dizifun.name, "İçerik Önizleme: $previewContent...")
         } catch (e: Exception) {
-            Log.e(this.name, "Kaynak bilgisi loglanırken hata: ${e.message}")
+            Log.e(this@Dizifun.name, "Kaynak bilgisi loglanırken hata: ${e.message}")
         }
     }
     
