@@ -264,13 +264,13 @@ class Dizifun : MainAPI() {
                 sources.forEach { source ->
                     Log.d("DZF", "Found direct source: $source")
                     callback.invoke(
-                        ExtractorLink(
-                            name,
-                            "Direct",
-                            source,
-                            data,
-                            Qualities.Unknown.value,
-                            source.contains(".m3u8")
+                        newExtractorLink(
+                            source = name,
+                            name = "Direct",
+                            url = source,
+                            referer = data,
+                            quality = Qualities.Unknown.value,
+                            isM3u8 = source.contains(".m3u8")
                         )
                     )
                 }
@@ -295,13 +295,13 @@ class Dizifun : MainAPI() {
                             directLinks.forEach { link ->
                                 Log.d("DZF", "Found direct link in iframe: $link")
                                 callback.invoke(
-                                    ExtractorLink(
-                                        name,
-                                        "Direct",
-                                        link,
-                                        iframe,
-                                        Qualities.Unknown.value,
-                                        link.contains(".m3u8")
+                                    newExtractorLink(
+                                        source = name,
+                                        name = "Direct",
+                                        url = link,
+                                        referer = iframe,
+                                        quality = Qualities.Unknown.value,
+                                        isM3u8 = link.contains(".m3u8")
                                     )
                                 )
                                 success = true
