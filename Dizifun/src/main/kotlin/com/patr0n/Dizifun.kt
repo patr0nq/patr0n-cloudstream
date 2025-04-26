@@ -102,11 +102,11 @@ class Dizifun : MainAPI() {
                 val name = it.text().trim()
                 val episode = name.substringAfter("Bölüm").trim().toIntOrNull() ?: return@mapNotNull null
                 val data = fixUrlNull(it.parent()?.attr("href")) ?: return@mapNotNull null
-                Episode(
-                    data,
-                    name,
-                    episode = episode
-                )
+                
+                newEpisode(data) {
+                    this.name = name
+                    this.episode = episode
+                }
             }
         } else null
 
@@ -144,7 +144,6 @@ class Dizifun : MainAPI() {
         val document = app.get(data).document
         val iframe = document.selectFirst("iframe")?.attr("src") ?: return false
         
-        // Add headers for better compatibility
         val headers = mapOf(
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
             "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -158,17 +157,16 @@ class Dizifun : MainAPI() {
             
             if (!videoUrl.isNullOrBlank()) {
                 callback.invoke(
-                    ExtractorLink(
-                        name,
-                        name,
-                        videoUrl,
-                        iframe,
-                        Qualities.Unknown.value,
-                        videoUrl.contains(".m3u8")
+                    newExtractorLink(
+                        source = name,
+                        name = name,
+                        url = videoUrl,
+                        referer = iframe,
+                        quality = Qualities.Unknown.value,
+                        isM3u8 = videoUrl.contains(".m3u8")
                     )
                 )
 
-                // Handle subtitles if available
                 iframeDoc.select("track").forEach { track ->
                     val subUrl = fixUrlNull(track.attr("src")) ?: return@forEach
                     val label = track.attr("label").ifEmpty { "Türkçe" }
