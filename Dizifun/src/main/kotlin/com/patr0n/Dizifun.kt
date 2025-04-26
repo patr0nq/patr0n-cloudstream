@@ -360,167 +360,197 @@ class Dizifun : MainAPI() {
     override suspend fun load(url: String): LoadResponse? {
         Log.d(this.name, "Loading details: $url")
         
-        val document = app.get(url, headers = defaultHeaders).document
-
-        // Başlığı bul
-        val title = document.selectFirst("h1.text-bold, div.titlemob, div.head-title > h1")?.text()?.trim() ?: return null
-        
-        // Posteri bul - web sayfası içerik resmi kullanabilir
-        val poster = fixUrlNull(document.selectFirst("div.media-cover img, img.imgboyut, img.responsive-img, div.platformmobile img")?.attr("src"))
-        
-        // Yılı bul
-        val yearText = document.select("ul.subnav li, div.content_data").find { it.text().contains("Yıl:") || it.text().contains("Dizi Yılı:") }?.text() ?: ""
-        val year = yearText.substringAfter("Yıl:").substringAfter("Dizi Yılı:").trim().toIntOrNull()
-        
-        // Açıklamayı bul
-        val description = document.selectFirst("p.text-muted, div.descmobi, div.content_data > p")?.text()?.trim()
-            ?: document.select("div.content_data, div.detail-text, div.description").firstOrNull()?.text()?.trim()
-        
-        // İçerik tipini belirle
-        val type = if (url.contains("/dizi/") || url.contains("sezon") || url.contains("bolum")) {
-            TvType.TvSeries
-        } else {
-            TvType.Movie
-        }
-        
-        // Ek bilgileri bul
-        val rating = document.selectFirst("span.rating, span.rate")?.text()?.toRatingInt()
-        val duration = document.selectFirst("span.runtime, div.content_data")?.text()?.let { 
-            val durationRegex = Regex("(\\d+)\\s*dk")
-            val match = durationRegex.find(it)
-            match?.groupValues?.get(1)?.toIntOrNull()
-        }
-        
-        // Kategori bilgilerini bul
-        val tags = document.select("div.genres a, ul.subnav li a, div.series-info, div.content_data span").map { it.text().trim() }
-        
-        // Oyuncuları bul
-        val actors = document.select("div.actors-container div.actor-card, div.oyuncular span").mapNotNull {
-            val actorName = it.selectFirst("span.actor-name")?.text()?.trim() 
-                ?: it.text().trim()
-                ?: return@mapNotNull null
-                
-            val actorImg = fixUrlNull(it.selectFirst("img")?.attr("src"))
+        try {
+            val response = app.get(url, headers = defaultHeaders)
+            Log.d(this.name, "HTTP Status: ${response.code}")
+            Log.d(this.name, "Content Type: ${response.headers["Content-Type"]}")
             
-            Actor(actorName, actorImg)
-        }
-        
-        // Fragmanı bul
-        val trailer = document.selectFirst("iframe[src*=youtube], a.trailer-button")?.attr("src")?.let { fixUrl(it) }
+            val document = response.document
+            val htmlContent = document.outerHtml()
+            logResponse(url, htmlContent)
 
-        // Bölümleri bul (dizi ise)
-        val episodes = if (type == TvType.TvSeries) {
-            val allEpisodes = ArrayList<Episode>()
+            // Başlığı bul
+            var title = document.selectFirst("h1.text-bold, div.titlemob, div.head-title > h1")?.text()?.trim()
+            Log.d(this.name, "Found title: $title")
+            if (title.isNullOrBlank()) {
+                Log.d(this.name, "Title not found, trying alternative selectors")
+                // Try alternative selectors for title
+                title = document.selectFirst("h1, .title, .movie-title, .dizi-title")?.text()?.trim()
+                Log.d(this.name, "Alternative title found: $title")
+                if (title.isNullOrBlank()) {
+                    Log.e(this.name, "No title found for $url")
+                    return null
+                }
+            }
             
-            // Season/Tab kutularını bul
-            val seasonTabs = document.select("div.tabcontent2, div.seasons, div.episodes-container")
-            if (seasonTabs.isNotEmpty()) {
-                Log.d(this.name, "Found ${seasonTabs.size} season tabs")
-                seasonTabs.forEach { seasonTab ->
-                    // Sezon ID'sini bul (season1, season2 gibi ID'ler veya sıra numarası)
-                    val seasonId = seasonTab.attr("id").replace(Regex("[^0-9]"), "").toIntOrNull() 
-                        ?: seasonTabs.indexOf(seasonTab) + 1
+            // Posteri bul - web sayfası içerik resmi kullanabilir
+            val poster = fixUrlNull(document.selectFirst("div.media-cover img, img.imgboyut, img.responsive-img, div.platformmobile img")?.attr("src"))
+            Log.d(this.name, "Found poster: $poster")
+            
+            // Yılı bul
+            val yearText = document.select("ul.subnav li, div.content_data").find { it.text().contains("Yıl:") || it.text().contains("Dizi Yılı:") }?.text() ?: ""
+            val year = yearText.substringAfter("Yıl:").substringAfter("Dizi Yılı:").trim().toIntOrNull()
+            Log.d(this.name, "Found year: $year")
+            
+            // Açıklamayı bul
+            val description = document.selectFirst("p.text-muted, div.descmobi, div.content_data > p")?.text()?.trim()
+                ?: document.select("div.content_data, div.detail-text, div.description").firstOrNull()?.text()?.trim()
+            Log.d(this.name, "Found description: ${description?.take(50)}...")
+            
+            // İçerik tipini belirle
+            val type = if (url.contains("/dizi/") || url.contains("sezon") || url.contains("bolum")) {
+                TvType.TvSeries
+            } else {
+                TvType.Movie
+            }
+            Log.d(this.name, "Content type: $type")
+            
+            // Ek bilgileri bul
+            val rating = document.selectFirst("span.rating, span.rate")?.text()?.toRatingInt()
+            val duration = document.selectFirst("span.runtime, div.content_data")?.text()?.let { 
+                val durationRegex = Regex("(\\d+)\\s*dk")
+                val match = durationRegex.find(it)
+                match?.groupValues?.get(1)?.toIntOrNull()
+            }
+            
+            // Kategori bilgilerini bul
+            val tags = document.select("div.genres a, ul.subnav li a, div.series-info, div.content_data span").map { it.text().trim() }
+            Log.d(this.name, "Found tags: $tags")
+            
+            // Oyuncuları bul
+            val actors = document.select("div.actors-container div.actor-card, div.oyuncular span").mapNotNull {
+                val actorName = it.selectFirst("span.actor-name")?.text()?.trim() 
+                    ?: it.text().trim()
+                    ?: return@mapNotNull null
                     
-                    // Her sezon tab'ındaki bölümleri bul
-                    val episodeElements = seasonTab.select("div.bolumtitle a, a[href*=episode], a.episode-button, a[href*=bolum], div.episode-button")
-                    Log.d(this.name, "Found ${episodeElements.size} episodes in season $seasonId")
+                val actorImg = fixUrlNull(it.selectFirst("img")?.attr("src"))
+                
+                Actor(actorName, actorImg)
+            }
+            Log.d(this.name, "Found ${actors.size} actors")
+            
+            // Fragmanı bul
+            val trailer = document.selectFirst("iframe[src*=youtube], a.trailer-button")?.attr("src")?.let { fixUrl(it) }
+            Log.d(this.name, "Found trailer: $trailer")
+
+            // Bölümleri bul (dizi ise)
+            val episodes = if (type == TvType.TvSeries) {
+                val allEpisodes = ArrayList<Episode>()
+                
+                // Season/Tab kutularını bul
+                val seasonTabs = document.select("div.tabcontent2, div.seasons, div.episodes-container")
+                if (seasonTabs.isNotEmpty()) {
+                    Log.d(this.name, "Found ${seasonTabs.size} season tabs")
+                    seasonTabs.forEach { seasonTab ->
+                        // Sezon ID'sini bul (season1, season2 gibi ID'ler veya sıra numarası)
+                        val seasonId = seasonTab.attr("id").replace(Regex("[^0-9]"), "").toIntOrNull() 
+                            ?: seasonTabs.indexOf(seasonTab) + 1
+                        
+                        // Her sezon tab'ındaki bölümleri bul
+                        val episodeElements = seasonTab.select("div.bolumtitle a, a[href*=episode], a.episode-button, a[href*=bolum], div.episode-button")
+                        Log.d(this.name, "Found ${episodeElements.size} episodes in season $seasonId")
+                        
+                        episodeElements.forEach { episodeElement ->
+                            val name = episodeElement.text().trim()
+                            val href = episodeElement.attr("href")
+                            
+                            // Bölüm numarasını extrakt et
+                            val episodeNum = when {
+                                name.contains("Bölüm") -> {
+                                    val numText = name.substringAfter("Bölüm").trim()
+                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                }
+                                name.contains("Bölum") -> {
+                                    val numText = name.substringAfter("Bölum").trim()
+                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                }
+                                else -> name.replace(Regex("[^0-9]"), "").toIntOrNull()
+                            } ?: return@forEach
+                            
+                            // URL'yi fix
+                            val data = fixUrlNull(href) ?: return@forEach
+                            val fullUrl = if (data.startsWith("?")) url + data else data
+                            
+                            allEpisodes.add(
+                                newEpisode(fullUrl) {
+                                    this.name = name
+                                    this.season = seasonId
+                                    this.episode = episodeNum
+                                }
+                            )
+                        }
+                    }
+                } else {
+                    // Alternatif bölüm seçicisi - sezon tabları yoksa
+                    val episodeElements = document.select("div.episode-button, div.bolumtitle a, a.episode-button, div.episodes div, div.episodes a, a[href*=bolum]")
+                    Log.d(this.name, "Found ${episodeElements.size} episode elements")
                     
                     episodeElements.forEach { episodeElement ->
                         val name = episodeElement.text().trim()
-                        val href = episodeElement.attr("href")
-                        
-                        // Bölüm numarasını extrakt et
-                        val episodeNum = when {
-                            name.contains("Bölüm") -> {
-                                val numText = name.substringAfter("Bölüm").trim()
-                                numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                            }
-                            name.contains("Bölum") -> {
-                                val numText = name.substringAfter("Bölum").trim()
-                                numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                            }
-                            else -> name.replace(Regex("[^0-9]"), "").toIntOrNull()
-                        } ?: return@forEach
-                        
-                        // URL'yi fix
-                        val data = fixUrlNull(href) ?: return@forEach
-                        val fullUrl = if (data.startsWith("?")) url + data else data
-                        
-                        allEpisodes.add(
-                            newEpisode(fullUrl) {
-                                this.name = name
-                                this.season = seasonId
-                                this.episode = episodeNum
-                            }
-                        )
+                        if (name.contains("Bölüm") || name.contains("Bölum") || name.matches(Regex(".*\\d+.*"))) {
+                            val episodeNum = when {
+                                name.contains("Bölüm") -> {
+                                    val numText = name.substringAfter("Bölüm").trim()
+                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                }
+                                name.contains("Bölum") -> {
+                                    val numText = name.substringAfter("Bölum").trim()
+                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                }
+                                else -> name.replace(Regex("[^0-9]"), "").toIntOrNull()
+                            } ?: return@forEach
+                            
+                            val href = episodeElement.attr("href")
+                            val parent = episodeElement.parent()
+                            val data = if (href.isNotBlank()) {
+                                fixUrlNull(href)
+                            } else {
+                                fixUrlNull(parent?.attr("href"))
+                            } ?: return@forEach
+                            
+                            val fullUrl = if (data.startsWith("?")) url + data else data
+                            
+                            allEpisodes.add(
+                                newEpisode(fullUrl) {
+                                    this.name = name
+                                    this.episode = episodeNum
+                                }
+                            )
+                        }
                     }
+                }
+                
+                Log.d(this.name, "Total episodes found: ${allEpisodes.size}")
+                allEpisodes
+            } else null
+
+            return if (type == TvType.TvSeries) {
+                newTvSeriesLoadResponse(title, url, type, episodes ?: emptyList()) {
+                    this.posterUrl = poster
+                    this.year = year
+                    this.plot = description
+                    this.rating = rating
+                    this.duration = duration
+                    this.tags = tags
+                    addActors(actors)
+                    addTrailer(trailer)
                 }
             } else {
-                // Alternatif bölüm seçicisi - sezon tabları yoksa
-                val episodeElements = document.select("div.episode-button, div.bolumtitle a, a.episode-button, div.episodes div, div.episodes a, a[href*=bolum]")
-                Log.d(this.name, "Found ${episodeElements.size} episode elements")
-                
-                episodeElements.forEach { episodeElement ->
-                    val name = episodeElement.text().trim()
-                    if (name.contains("Bölüm") || name.contains("Bölum") || name.matches(Regex(".*\\d+.*"))) {
-                        val episodeNum = when {
-                            name.contains("Bölüm") -> {
-                                val numText = name.substringAfter("Bölüm").trim()
-                                numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                            }
-                            name.contains("Bölum") -> {
-                                val numText = name.substringAfter("Bölum").trim()
-                                numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                            }
-                            else -> name.replace(Regex("[^0-9]"), "").toIntOrNull()
-                        } ?: return@forEach
-                        
-                        val href = episodeElement.attr("href")
-                        val parent = episodeElement.parent()
-                        val data = if (href.isNotBlank()) {
-                            fixUrlNull(href)
-                        } else {
-                            fixUrlNull(parent?.attr("href"))
-                        } ?: return@forEach
-                        
-                        val fullUrl = if (data.startsWith("?")) url + data else data
-                        
-                        allEpisodes.add(
-                            newEpisode(fullUrl) {
-                                this.name = name
-                                this.episode = episodeNum
-                            }
-                        )
-                    }
+                newMovieLoadResponse(title, url, type, url) {
+                    this.posterUrl = poster
+                    this.year = year
+                    this.plot = description
+                    this.rating = rating
+                    this.duration = duration
+                    this.tags = tags
+                    addActors(actors)
+                    addTrailer(trailer)
                 }
             }
-            
-            Log.d(this.name, "Total episodes found: ${allEpisodes.size}")
-            allEpisodes
-        } else null
-
-        return if (type == TvType.TvSeries) {
-            newTvSeriesLoadResponse(title, url, type, episodes ?: emptyList()) {
-                this.posterUrl = poster
-                this.year = year
-                this.plot = description
-                this.rating = rating
-                this.duration = duration
-                this.tags = tags
-                addActors(actors)
-                addTrailer(trailer)
-            }
-        } else {
-            newMovieLoadResponse(title, url, type, url) {
-                this.posterUrl = poster
-                this.year = year
-                this.plot = description
-                this.rating = rating
-                this.duration = duration
-                this.tags = tags
-                addActors(actors)
-                addTrailer(trailer)
-            }
+        } catch (e: Exception) {
+            Log.e(this.name, "Video detayları yüklenirken hata: ${e.message}")
+            e.printStackTrace()
+            return null
         }
     }
 
