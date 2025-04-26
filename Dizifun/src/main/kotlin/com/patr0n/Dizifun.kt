@@ -32,16 +32,20 @@ class Dizifun : MainAPI() {
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get(request.data).document
-        val home     = document.select("div.movie-item").mapNotNull { it.diziler() }
+        val headers = mapOf(
+            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
+
+        val document = app.get(request.data, headers=headers).document
+        val home     = document.select(".uk-width-medium-1-3.uk-width-large-1-6.uk-margin-bottom").mapNotNull { it.diziler() }
 
         return newHomePageResponse(request.name, home)
     }
 
     private fun Element.diziler(): SearchResponse? {
-        val title     = this.selectFirst("div.name a")?.text()?.trim() ?: return null
-        val href      = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("div.img img")?.attr("src"))
+        val title     = this.selectFirst(".uk-panel-title.uk-text-truncate")?.text()?.trim() ?: return null
+        val href      = fixUrlNull(this.selectFirst(".uk-position-cover")?.attr("href")) ?: return null
+        val posterUrl = fixUrlNull(this.selectFirst(".uk-overlay img")?.attr("src"))
 
         return if (href.contains("/film/")) {
             newMovieSearchResponse(title, href, TvType.Movie) { this.posterUrl = posterUrl }
@@ -51,9 +55,13 @@ class Dizifun : MainAPI() {
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val document = app.get("${mainUrl}/?s=${query}").document
+        val headers = mapOf(
+            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
 
-        return document.select("div.movie-item").mapNotNull { it.diziler() }
+        val document = app.get("${mainUrl}/?s=${query}", headers=headers).document
+
+        return document.select(".uk-width-medium-1-3.uk-width-large-1-6.uk-margin-bottom").mapNotNull { it.diziler() }
     }
 
     override suspend fun load(url: String): LoadResponse? {
