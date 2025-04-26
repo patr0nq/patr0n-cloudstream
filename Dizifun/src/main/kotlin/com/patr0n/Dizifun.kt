@@ -36,6 +36,37 @@ class Dizifun : MainAPI() {
         "${mainUrl}/category/filmler"   to "Filmler"
     )
 
+    private fun Element.diziler(): SearchResponse? {
+        try {
+            val title = this.selectFirst(".uk-panel-title.uk-text-truncate, h3, .film-name, .dizi-name, a[title], .uk-h3")
+                ?.text()?.substringBefore(" izle")?.trim()
+                ?: return null
+
+            val href = fixUrlNull(this.selectFirst(".uk-position-cover, a[href], a")?.attr("href")) ?: return null
+            
+            val posterUrl = fixUrlNull(this.selectFirst(".uk-overlay img, img[src], .film-image img, .dizi-image img")?.attr("src"))
+            
+            val year = this.selectFirst(".release, span.year, div.year")?.text()?.trim()?.let { 
+                Regex("(\\d{4})").find(it)?.groupValues?.get(1)?.toIntOrNull() 
+            }
+
+            return if (href.contains("/film/") || href.contains("/movie/") || href.contains("/filmler/")) {
+                newMovieSearchResponse(title, href, TvType.Movie) { 
+                    this.posterUrl = posterUrl
+                    this.year = year
+                }
+            } else {
+                newTvSeriesSearchResponse(title, href, TvType.TvSeries) { 
+                    this.posterUrl = posterUrl 
+                    this.year = year
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("DZF", "Error parsing search item", e)
+            return null
+        }
+    }
+
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val headers = mapOf(
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -264,13 +295,13 @@ class Dizifun : MainAPI() {
                 sources.forEach { source ->
                     Log.d("DZF", "Found direct source: $source")
                     callback.invoke(
-                        newExtractorLink(
-                            source = name,
-                            name = "Direct",
-                            url = source,
-                            referer = data,
-                            quality = Qualities.Unknown.value,
-                            isM3u8 = source.contains(".m3u8")
+                        ExtractorLink(
+                            name,
+                            "Direct",
+                            source,
+                            data,
+                            Qualities.Unknown.value,
+                            source.contains(".m3u8")
                         )
                     )
                 }
@@ -295,13 +326,13 @@ class Dizifun : MainAPI() {
                             directLinks.forEach { link ->
                                 Log.d("DZF", "Found direct link in iframe: $link")
                                 callback.invoke(
-                                    newExtractorLink(
-                                        source = name,
-                                        name = "Direct",
-                                        url = link,
-                                        referer = iframe,
-                                        quality = Qualities.Unknown.value,
-                                        isM3u8 = link.contains(".m3u8")
+                                    ExtractorLink(
+                                        name,
+                                        "Direct",
+                                        link,
+                                        iframe,
+                                        Qualities.Unknown.value,
+                                        link.contains(".m3u8")
                                     )
                                 )
                                 success = true
