@@ -20,9 +20,14 @@ class Dizifun : MainAPI() {
         TvType.Movie
     )
 
+    companion object {
+        // User agent for all requests
+        private const val USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+
     // Standart Request Headers - Tüm isteklerde kullanılacak
     private val defaultHeaders = mapOf(
-        "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "User-Agent" to USER_AGENT,
         "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
         "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
         "Connection" to "keep-alive",
@@ -86,7 +91,7 @@ class Dizifun : MainAPI() {
         Log.d(this.name, "Found ${specialCategoryItems.size} special category items in ${request.name}")
         
         specialCategoryItems.forEach { element ->
-            val parent = element.parent()
+            val parent = element.parent() ?: return@forEach
             val panel = parent.selectFirst("div.uk-panel")
             
             // Başlık bul
@@ -526,7 +531,7 @@ class Dizifun : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         val url = data
-        logger.debug("Video linkleri yükleniyor: $url")
+        Log.d(this.name, "Video linkleri yükleniyor: $url")
         
         try {
             val doc = app.get(url, headers = mapOf(
@@ -540,7 +545,7 @@ class Dizifun : MainAPI() {
                 // İframe src'yi kontrol et ve gerekirse decode et
                 val iframeSrc = checkAndDecodeIframeSrc(rawIframeSrc)
                 val normalizedIframeSrc = normalizeUrl(iframeSrc)
-                logger.debug("İframe kaynağı bulundu: $normalizedIframeSrc")
+                Log.d(this.name, "İframe kaynağı bulundu: $normalizedIframeSrc")
                 
                 // İframe kaynağı ile ilgili detaylı bilgileri logla
                 logSourceInfo(normalizedIframeSrc)
@@ -558,34 +563,34 @@ class Dizifun : MainAPI() {
                     val hexUrls = findHexEncodedUrls(iframeDoc)
                     
                     if (hexUrls.isEmpty()) {
-                        logger.debug("Hex-encoded URL bulunamadı, alternatif arama yöntemleri deneniyor...")
+                        Log.d(this.name, "Hex-encoded URL bulunamadı, alternatif arama yöntemleri deneniyor...")
                         
                         // Doğrudan video tag'ı ara
                         val videoSources = doc.select("video source").map { it.attr("src") }
                         if (videoSources.isNotEmpty()) {
-                            logger.debug("Video kaynak tag'ları bulundu: ${videoSources.size}")
+                            Log.d(this.name, "Video kaynak tag'ları bulundu: ${videoSources.size}")
                             videoSources.forEach { sourceUrl ->
                                 val normalizedSourceUrl = normalizeUrl(sourceUrl)
                                 callback.invoke(
-                                    ExtractorLink(
-                                        name = this.name,
-                                        source = "Direct (Video Tag)",
-                                        url = normalizedSourceUrl,
-                                        referer = url,
-                                        quality = Qualities.Unknown.value,
-                                        isM3u8 = normalizedSourceUrl.contains(".m3u8")
+                                    newExtractorLink(
+                                        this.name,
+                                        "Direct (Video Tag)",
+                                        normalizedSourceUrl,
+                                        url,
+                                        Qualities.Unknown.value,
+                                        normalizedSourceUrl.contains(".m3u8")
                                     )
                                 )
                             }
                         }
                     } else {
-                        logger.debug("${hexUrls.size} hex-encoded URL bulundu")
+                        Log.d(this.name, "${hexUrls.size} hex-encoded URL bulundu")
                     }
                     
                     // Bulunan URL'leri işle
                     hexUrls.forEach { videoUrl ->
                         val normalizedVideoUrl = normalizeUrl(videoUrl)
-                        logger.debug("Bulunan video URL'si: $normalizedVideoUrl")
+                        Log.d(this.name, "Bulunan video URL'si: $normalizedVideoUrl")
                         
                         // Video kalitesini belirle
                         val quality = when {
@@ -606,38 +611,26 @@ class Dizifun : MainAPI() {
                         }
                         
                         // .m3u8 dosyaları için özel işlem
-                        if (normalizedVideoUrl.contains(".m3u8")) {
-                            callback.invoke(
-                                ExtractorLink(
-                                    name = this.name,
-                                    source = "${sourceName} HLS",
-                                    url = normalizedVideoUrl,
-                                    referer = normalizedIframeSrc,
-                                    quality = quality,
-                                    isM3u8 = true
-                                )
+                        callback.invoke(
+                            newExtractorLink(
+                                this.name,
+                                if (normalizedVideoUrl.contains(".m3u8")) "${sourceName} HLS" else sourceName,
+                                normalizedVideoUrl,
+                                normalizedIframeSrc,
+                                quality,
+                                normalizedVideoUrl.contains(".m3u8")
                             )
-                        } else {
-                            callback.invoke(
-                                ExtractorLink(
-                                    name = this.name,
-                                    source = sourceName,
-                                    url = normalizedVideoUrl,
-                                    referer = normalizedIframeSrc,
-                                    quality = quality
-                                )
-                            )
-                        }
+                        )
                     }
                     
                     // Alternatif embed URL'leri kontrol et
                     val altEmbeds = doc.select("a.alter_video").map { it.attr("href") }
                     if (altEmbeds.isNotEmpty()) {
-                        logger.debug("Alternatif embedler bulundu: ${altEmbeds.size}")
+                        Log.d(this.name, "Alternatif embedler bulundu: ${altEmbeds.size}")
                         altEmbeds.forEach { embedUrl ->
                             try {
                                 val normalizedEmbedUrl = normalizeUrl(embedUrl)
-                                logger.debug("Alternatif embed işleniyor: $normalizedEmbedUrl")
+                                Log.d(this.name, "Alternatif embed işleniyor: $normalizedEmbedUrl")
                                 
                                 val embedDoc = app.get(
                                     normalizedEmbedUrl,
@@ -648,7 +641,7 @@ class Dizifun : MainAPI() {
                                 ).text
                                 
                                 val altHexUrls = findHexEncodedUrls(embedDoc)
-                                logger.debug("Alternatif embeddeki hex URL sayısı: ${altHexUrls.size}")
+                                Log.d(this.name, "Alternatif embeddeki hex URL sayısı: ${altHexUrls.size}")
                                 
                                 altHexUrls.forEach { videoUrl ->
                                     val normalizedAltVideoUrl = normalizeUrl(videoUrl)
@@ -670,31 +663,19 @@ class Dizifun : MainAPI() {
                                         else -> "Direct (Alt)"
                                     }
                                     
-                                    if (normalizedAltVideoUrl.contains(".m3u8")) {
-                                        callback.invoke(
-                                            ExtractorLink(
-                                                name = this.name,
-                                                source = "${sourceName} HLS",
-                                                url = normalizedAltVideoUrl,
-                                                referer = normalizedEmbedUrl,
-                                                quality = quality,
-                                                isM3u8 = true
-                                            )
+                                    callback.invoke(
+                                        newExtractorLink(
+                                            this.name,
+                                            if (normalizedAltVideoUrl.contains(".m3u8")) "${sourceName} HLS" else sourceName,
+                                            normalizedAltVideoUrl,
+                                            normalizedEmbedUrl,
+                                            quality,
+                                            normalizedAltVideoUrl.contains(".m3u8")
                                         )
-                                    } else {
-                                        callback.invoke(
-                                            ExtractorLink(
-                                                name = this.name,
-                                                source = sourceName,
-                                                url = normalizedAltVideoUrl,
-                                                referer = normalizedEmbedUrl,
-                                                quality = quality
-                                            )
-                                        )
-                                    }
+                                    )
                                 }
                             } catch (e: Exception) {
-                                logger.error("Alternatif embed yüklenirken hata: ${e.message}")
+                                Log.e(this.name, "Alternatif embed yüklenirken hata: ${e.message}")
                             }
                         }
                     }
@@ -702,53 +683,49 @@ class Dizifun : MainAPI() {
                     // Altyazıları bul
                     doc.select("track").forEach { track ->
                         val subLabel = track.attr("label").ifEmpty { "Türkçe" }
-                        val subKind = track.attr("kind").ifEmpty { "subtitles" }
                         val subLang = track.attr("srclang").ifEmpty { "tr" }
                         val subUrl = track.attr("src")
                         
                         if (subUrl.isNotEmpty()) {
                             val normalizedSubUrl = normalizeUrl(subUrl)
-                            logger.debug("Altyazı bulundu: $subLabel - $normalizedSubUrl")
+                            Log.d(this.name, "Altyazı bulundu: $subLabel - $normalizedSubUrl")
                             subtitleCallback.invoke(
                                 SubtitleFile(
                                     subLang,
-                                    normalizedSubUrl,
-                                    subLabel,
-                                    SubtitleOrigin.URL,
-                                    if (subKind == "captions") SubtitleType.CLOSED_CAPTION else SubtitleType.SUBTITLE
+                                    normalizedSubUrl
                                 )
                             )
                         }
                     }
                 } catch (e: Exception) {
-                    logger.error("İframe içeriği işlenirken hata: ${e.message}")
+                    Log.e(this.name, "İframe içeriği işlenirken hata: ${e.message}")
                 }
             } else {
-                logger.error("İframe bulunamadı, doğrudan video tag'ı aranıyor...")
+                Log.e(this.name, "İframe bulunamadı, doğrudan video tag'ı aranıyor...")
                 
                 // Doğrudan video tag'ı ara
                 val videoSources = doc.select("video source").map { it.attr("src") }
                 if (videoSources.isNotEmpty()) {
-                    logger.debug("Video kaynak tag'ları bulundu: ${videoSources.size}")
+                    Log.d(this.name, "Video kaynak tag'ları bulundu: ${videoSources.size}")
                     videoSources.forEach { sourceUrl ->
                         val normalizedSourceUrl = normalizeUrl(sourceUrl)
                         callback.invoke(
-                            ExtractorLink(
-                                name = this.name,
-                                source = "Direct (Video Tag)",
-                                url = normalizedSourceUrl,
-                                referer = url,
-                                quality = Qualities.Unknown.value,
-                                isM3u8 = normalizedSourceUrl.contains(".m3u8")
+                            newExtractorLink(
+                                this.name,
+                                "Direct (Video Tag)",
+                                normalizedSourceUrl,
+                                url,
+                                Qualities.Unknown.value,
+                                normalizedSourceUrl.contains(".m3u8")
                             )
                         )
                     }
                 } else {
-                    logger.error("Hiçbir video kaynağı bulunamadı")
+                    Log.e(this.name, "Hiçbir video kaynağı bulunamadı")
                 }
             }
         } catch (e: Exception) {
-            logger.error("Video linkleri yüklenirken hata: ${e.message}")
+            Log.e(this.name, "Video linkleri yüklenirken hata: ${e.message}")
             return false
         }
         
@@ -817,7 +794,7 @@ class Dizifun : MainAPI() {
                                 foundUrls.add(decodedString)
                             }
                         } catch (e: Exception) {
-                            logger.error("Hex decode error: ${e.message}")
+                            Log.e(this.name, "Hex decode error: ${e.message}")
                         }
                     }
                 }
@@ -837,7 +814,7 @@ class Dizifun : MainAPI() {
                         foundUrls.add(decodedValue)
                     }
                 } catch (e: Exception) {
-                    logger.error("Hex function call decode error: ${e.message}")
+                    Log.e(this.name, "Hex function call decode error: ${e.message}")
                 }
             }
             
@@ -855,11 +832,11 @@ class Dizifun : MainAPI() {
                         foundUrls.add(decodedValue)
                     }
                 } catch (e: Exception) {
-                    logger.error("Direct hex decode error: ${e.message}")
+                    Log.e(this.name, "Direct hex decode error: ${e.message}")
                 }
             }
         } catch (e: Exception) {
-            logger.error("Error finding hex URLs: ${e.message}")
+            Log.e(this.name, "Error finding hex URLs: ${e.message}")
         }
         
         // Tekrarlanan URL'leri temizle
@@ -886,11 +863,11 @@ class Dizifun : MainAPI() {
                     // HTTP ile başlayan ilk URL'yi döndür
                     val httpUrl = possibleUrls.firstOrNull { it.startsWith("http") }
                     if (httpUrl != null) {
-                        logger.debug("Javascript'ten çözülen URL: $httpUrl")
+                        Log.d(this.name, "Javascript'ten çözülen URL: $httpUrl")
                         return httpUrl
                     }
                 } catch (e: Exception) {
-                    logger.error("Javascript iframe src çözülemedi: ${e.message}")
+                    Log.e(this.name, "Javascript iframe src çözülemedi: ${e.message}")
                 }
             }
         }
@@ -900,11 +877,11 @@ class Dizifun : MainAPI() {
             try {
                 val decoded = hexToString(iframeSrc)
                 if (decoded.startsWith("http")) {
-                    logger.debug("Hex-encoded iframe src çözüldü: $decoded")
+                    Log.d(this.name, "Hex-encoded iframe src çözüldü: $decoded")
                     return decoded
                 }
             } catch (e: Exception) {
-                logger.error("Hex iframe src çözülemedi: ${e.message}")
+                Log.e(this.name, "Hex iframe src çözülemedi: ${e.message}")
             }
         }
         
@@ -912,25 +889,25 @@ class Dizifun : MainAPI() {
         return iframeSrc
     }
 
-    // Debug için bilgileri logla
-    private fun logSourceInfo(url: String) {
+    // Debug için bilgileri logla - suspend fonksiyon olarak değiştirildi
+    private suspend fun logSourceInfo(url: String) {
         try {
-            logger.debug("URL işleniyor: $url")
+            Log.d(this.name, "URL işleniyor: $url")
             val response = app.get(url, headers = mapOf(
                 "User-Agent" to USER_AGENT,
                 "Referer" to mainUrl
             ))
-            logger.debug("HTTP Durum: ${response.code}")
-            logger.debug("Content-Type: ${response.headers["Content-Type"]}")
+            Log.d(this.name, "HTTP Durum: ${response.code}")
+            Log.d(this.name, "Content-Type: ${response.headers["Content-Type"]}")
             
             val contentLength = response.headers["Content-Length"]?.toIntOrNull() ?: 0
-            logger.debug("İçerik Boyutu: ${contentLength / 1024} KB")
+            Log.d(this.name, "İçerik Boyutu: ${contentLength / 1024} KB")
             
             // İlk 100 karakteri logla
             val previewContent = response.text.take(100).replace("\n", " ")
-            logger.debug("İçerik Önizleme: $previewContent...")
+            Log.d(this.name, "İçerik Önizleme: $previewContent...")
         } catch (e: Exception) {
-            logger.error("Kaynak bilgisi loglanırken hata: ${e.message}")
+            Log.e(this.name, "Kaynak bilgisi loglanırken hata: ${e.message}")
         }
     }
     
