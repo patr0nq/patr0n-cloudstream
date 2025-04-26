@@ -156,15 +156,14 @@ class Dizifun : MainAPI() {
             val videoUrl = iframeDoc.selectFirst("source")?.attr("src")
             
             if (!videoUrl.isNullOrBlank()) {
+                val isM3u8 = videoUrl.contains(".m3u8")
+                val extractorType = if (isM3u8) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
+                
                 callback.invoke(
-                    newExtractorLink(
-                        source = name,
-                        name = name,
-                        url = videoUrl,
-                        referer = iframe,
-                        quality = Qualities.Unknown.value,
-                        isM3u8 = videoUrl.contains(".m3u8")
-                    )
+                    newExtractorLink(source = name, name = name, url = videoUrl, extractorType) {
+                        this.referer = iframe
+                        this.quality = Qualities.Unknown.value
+                    }
                 )
 
                 iframeDoc.select("track").forEach { track ->
