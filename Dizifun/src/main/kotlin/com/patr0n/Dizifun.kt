@@ -252,7 +252,7 @@ class Dizifun : MainAPI() {
         }
         
         // İçerik tipini belirle
-        val type = if (href.contains("/dizi/") || href.contains("/diziler/") || href.contains("sezon") || href.contains("bolum") || 
+        val type = if (href.contains("/dizi/") || href.contains("/diziler/") || url.contains("sezon") || url.contains("bolum") || 
                    href.contains("netflix") || href.contains("disney") || href.contains("primevideo") || 
                    href.contains("blutv") || href.contains("gain") || href.contains("exxen") || 
                    href.contains("tabii-dizileri") || href.contains("hulu") || href.contains("todtv") || 
@@ -450,26 +450,291 @@ class Dizifun : MainAPI() {
             val episodes = if (type == TvType.TvSeries) {
                 val allEpisodes = ArrayList<Episode>()
                 
-                // Season/Tab kutularını bul
-                val seasonTabs = document.select("div.tabcontent2, div.seasons, div.episodes-container, div.episodeitem, div.episodelist, div.bolumler, div.seasons-bk")
-                Log.d(this@Dizifun.name, "Sezon tabları: ${seasonTabs.size}")
+                // Season/Tab kutularını bul - Önce sezon seçimini bul
+                val seasonSelectors = document.select("div.sezon-select, div.season-select, select.season-change, div.seasons-bk")
+                Log.d(this@Dizifun.name, "Sezon seçicileri: ${seasonSelectors.size}")
                 
-                if (seasonTabs.isNotEmpty()) {
-                    Log.d(this@Dizifun.name, "Found ${seasonTabs.size} season tabs")
-                    seasonTabs.forEach { seasonTab ->
-                        // Sezon ID'sini bul (season1, season2 gibi ID'ler veya sıra numarası)
-                        val seasonId = seasonTab.attr("id").replace(Regex("[^0-9]"), "").toIntOrNull() 
-                            ?: seasonTabs.indexOf(seasonTab) + 1
+                // Sezon seçicileri bulundu mu?
+                if (seasonSelectors.isNotEmpty()) {
+                    Log.d(this@Dizifun.name, "Sezon seçicileri bulundu.")
+                    
+                    // Sezon butonlarını/dropdown seçeneklerini bul
+                    val seasonButtons = seasonSelectors.select("a, option, button, span").filter { it.text().contains("Sezon", ignoreCase = true) || it.text().matches(Regex("S\\d+", RegexOption.IGNORE_CASE)) }
+                    Log.d(this@Dizifun.name, "Sezon butonları: ${seasonButtons.size}")
+                    
+                    seasonButtons.forEachIndexed { index, seasonButton ->
+                        val seasonText = seasonButton.text().trim()
+                        // Sezon numarasını çıkar
+                        val seasonId = seasonText.replace(Regex("[^0-9]"), "").toIntOrNull() ?: (index + 1)
+                        Log.d(this@Dizifun.name, "İşleniyor: $seasonText (Sezon $seasonId)")
                         
-                        // Her sezon tab'ındaki bölümleri bul
-                        val episodeElements = seasonTab.select("div.bolumtitle a, a[href*=episode], a.episode-button, a[href*=bolum], div.episode-button, li.episode a, a.btn-episode, a[href*=izle], a.dizi-parts")
-                        Log.d(this@Dizifun.name, "Found ${episodeElements.size} episodes in season $seasonId")
+                        // Her sezon düğmesine ait bölüm listesini bul
+                        val seasonContent = seasonButton.attr("href").takeIf { it.isNotBlank() }?.let {
+                            // Eğer butonda href varsa, muhtemelen ayrı bir sayfa
+                            val seasonUrl = if (it.startsWith("http")) it else fixUrlNull(it)
+                            val seasonDoc = app.get(seasonUrl!!, headers = defaultHeaders).document
+                            seasonDoc.select("a[href*=bolum], a.episode-button, div.episode-button, a[href*=izle], li.episode a, a.btn-episode, a.dizi-parts")
+                        } ?: document.select("div[id=season$seasonId], div[id=sezon$seasonId], div.seasonContent$seasonId, div.tabcontent$seasonId").select("a[href*=bolum], a.episode-button, div.episode-button, a[href*=izle], li.episode a, a.btn-episode, a.dizi-parts")
+                        
+                        if (seasonContent.isEmpty()) {
+                            // Dizifun2 sitesi için özel seçici - Sezon butonları basit tıklama/toggle düğmeleridir
+                            val allEpisodeLinks = document.select("a[href*=bolum], a.episode-button, a[href*=izle], li.episode a, a.btn-episode, a.dizi-parts").filter {
+                                // Basit metin filtreleme - sadece o sezona ait bölümleri bul
+                                val episodeNum = it.text().replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0
+                                val isBelongingToSeason = when {
+                                    it.hasAttr("data-season") -> it.attr("data-season").equals(seasonId.toString())
+                                    it.parent()?.hasAttr("data-season") == true -> it.parent()?.attr("data-season").equals(seasonId.toString())
+                                    it.hasClass("season-$seasonId") || it.parent()?.hasClass("season-$seasonId") == true -> true
+                                    // Sayfa yapısına göre her buton için sezon tahmin et
+                                    else -> true
+                                }
+                                isBelongingToSeason
+                            }
+                            
+                            Log.d(this@Dizifun.name, "Sezon $seasonId için alternatif bölüm bulundu: ${allEpisodeLinks.size}")
+                            
+                            allEpisodeLinks.forEach { episodeElement ->
+                                val name = episodeElement.text().trim()
+                                val href = episodeElement.attr("href")
+                                
+                                Log.d(this@Dizifun.name, "Bölüm elementi: name=$name, href=$href")
+                                
+                                // Bölüm numarasını extract et
+                                val episodeNum = when {
+                                    name.contains("Bölüm", ignoreCase = true) -> {
+                                        val lowerName = name.lowercase()
+                                        val numText = lowerName.substringAfter("bölüm").trim()
+                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                    }
+                                    name.contains("Bölum", ignoreCase = true) -> {
+                                        val lowerName = name.lowercase()
+                                        val numText = lowerName.substringAfter("bölum").trim()
+                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                    }
+                                    name.contains("Bolum", ignoreCase = true) -> {
+                                        val lowerName = name.lowercase()
+                                        val numText = lowerName.substringAfter("bolum").trim()
+                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                    }
+                                    name.contains("Episode", ignoreCase = true) -> {
+                                        val lowerName = name.lowercase()
+                                        val numText = lowerName.substringAfter("episode").trim()
+                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                    }
+                                    name.contains("B.", ignoreCase = true) -> {
+                                        val lowerName = name.lowercase()
+                                        val numText = lowerName.substringAfter("b.").trim()
+                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                    }
+                                    name.matches(Regex(".*\\d+.*", RegexOption.IGNORE_CASE)) -> {
+                                        name.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                    }
+                                    else -> 1 // Bölüm numarası bulunamazsa 1 atanır
+                                }
+                                
+                                Log.d(this@Dizifun.name, "Extracted episode number: $episodeNum")
+                                
+                                // URL'yi fix
+                                val data = if (href.isNotBlank()) {
+                                    fixUrlNull(href)
+                                } else {
+                                    null
+                                }
+                                
+                                if (data == null) {
+                                    Log.d(this@Dizifun.name, "Skipping episode with invalid URL")
+                                    return@forEach
+                                }
+                                
+                                val fullUrl = if (data.startsWith("?") || data.startsWith("/")) {
+                                    if (data.startsWith("?")) url + data else mainUrl + data
+                                } else {
+                                    data
+                                }
+                                
+                                Log.d(this@Dizifun.name, "Adding episode: name=$name, season=$seasonId, episode=$episodeNum, url=$fullUrl")
+                                
+                                allEpisodes.add(
+                                    newEpisode(fullUrl) {
+                                        this.name = name
+                                        this.season = seasonId
+                                        this.episode = episodeNum ?: 1
+                                    }
+                                )
+                            }
+                        } else {
+                            Log.d(this@Dizifun.name, "Sezon $seasonId için bölüm bulundu: ${seasonContent.size}")
+                            
+                            seasonContent.forEach { episodeElement ->
+                                val name = episodeElement.text().trim()
+                                val href = episodeElement.attr("href")
+                                
+                                // Boş bölüm isimleri veya linkler için atla
+                                if (name.isBlank() || href.isBlank()) return@forEach
+                                
+                                Log.d(this@Dizifun.name, "Bölüm elementi: name=$name, href=$href")
+                                
+                                // Bölüm numarasını extract et
+                                val episodeNum = when {
+                                    name.contains("Bölüm", ignoreCase = true) -> {
+                                        val lowerName = name.lowercase()
+                                        val numText = lowerName.substringAfter("bölüm").trim()
+                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                    }
+                                    name.contains("Bölum", ignoreCase = true) -> {
+                                        val lowerName = name.lowercase()
+                                        val numText = lowerName.substringAfter("bölum").trim()
+                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                    }
+                                    name.contains("Bolum", ignoreCase = true) -> {
+                                        val lowerName = name.lowercase()
+                                        val numText = lowerName.substringAfter("bolum").trim()
+                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                    }
+                                    name.contains("Episode", ignoreCase = true) -> {
+                                        val lowerName = name.lowercase()
+                                        val numText = lowerName.substringAfter("episode").trim()
+                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                    }
+                                    name.contains("B.", ignoreCase = true) -> {
+                                        val lowerName = name.lowercase()
+                                        val numText = lowerName.substringAfter("b.").trim()
+                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                    }
+                                    name.matches(Regex(".*\\d+.*", RegexOption.IGNORE_CASE)) -> {
+                                        name.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                    }
+                                    href.contains("bolum", ignoreCase = true) || href.contains("episode", ignoreCase = true) -> {
+                                        val episodeRegex = Regex("(?:bolum|episode)[\\s-]*([0-9]+)", RegexOption.IGNORE_CASE)
+                                        val matchResult = episodeRegex.find(href)
+                                        matchResult?.groupValues?.get(1)?.toIntOrNull()
+                                    }
+                                    else -> 1 // Bölüm numarası bulunamazsa 1 atanır
+                                }
+                                
+                                Log.d(this@Dizifun.name, "Extracted episode number: $episodeNum")
+                                
+                                // URL'yi fix
+                                val data = fixUrlNull(href)
+                                if (data != null) {
+                                    val fullUrl = if (data.startsWith("?") || data.startsWith("/")) {
+                                        if (data.startsWith("?")) url + data else mainUrl + data
+                                    } else {
+                                        data
+                                    }
+                                    
+                                    Log.d(this@Dizifun.name, "Adding alternative episode: name=$name, season=$seasonId, episode=$episodeNum, url=$fullUrl")
+                                    
+                                    allEpisodes.add(
+                                        newEpisode(fullUrl) {
+                                            this.name = name
+                                            this.season = seasonId
+                                            this.episode = episodeNum ?: 1
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Sezon seçicileri bulunamadı, alternatif yöntem dene
+                    // Dizifun2 için özel yöntem - içerikteki 1.Sezon, 2.Sezon gibi metinleri bul
+                    val seasonTexts = document.select("div.seasons-bk, div.bolumler, div.episodelist, div.season-list")
+                    Log.d(this@Dizifun.name, "Alternatif sezon alanları: ${seasonTexts.size}")
+                    
+                    // Eğer sezonlar serbest metinler olarak mevcut ise (örn: 1.Sezon 2.Sezon gibi butonlar)
+                    val seasonButtons = document.select("a, button, span").filter { it.text().contains("Sezon", ignoreCase = true) || it.text().matches(Regex("S\\d+", RegexOption.IGNORE_CASE)) }
+                    
+                    if (seasonButtons.isNotEmpty()) {
+                        Log.d(this@Dizifun.name, "Alternatif sezon butonları: ${seasonButtons.size}")
+                        
+                        seasonButtons.forEachIndexed { index, seasonButton ->
+                            val seasonText = seasonButton.text().trim()
+                            // Sezon numarasını çıkar
+                            val seasonId = seasonText.replace(Regex("[^0-9]"), "").toIntOrNull() ?: (index + 1)
+                            Log.d(this@Dizifun.name, "İşleniyor: $seasonText (Sezon $seasonId)")
+                            
+                            // Dizifun2 sitesinde bölümler genellikle bir listede düz olarak sunulur
+                            // Her sezon butonuna tıklandığında JS ile gösterilir/gizlenir
+                            // Tüm bölümleri topla ve sezon numarasını tahmin et
+                            
+                            // Tüm bölüm butonlarını bul
+                            val episodeLinks = document.select("a, button, span").filter { 
+                                (it.text().contains("Bölüm", ignoreCase = true) || 
+                                 it.text().contains("Bolum", ignoreCase = true) || 
+                                 it.text().matches(Regex("E\\d+", RegexOption.IGNORE_CASE))) &&
+                                it.hasAttr("href")
+                            }
+                            
+                            // Basit tahmin: İlk sezonun bölümleri 1-25, ikinci sezonun 26-50 gibi
+                            val currentSeasonEpisodes = if (seasonButtons.size > 1) {
+                                val episodesPerSeason = episodeLinks.size / seasonButtons.size
+                                val start = index * episodesPerSeason
+                                val end = if (index == seasonButtons.size - 1) episodeLinks.size else (index + 1) * episodesPerSeason
+                                episodeLinks.subList(start, end)
+                            } else {
+                                episodeLinks
+                            }
+                            
+                            Log.d(this@Dizifun.name, "Sezon $seasonId için tahmini bölüm sayısı: ${currentSeasonEpisodes.size}")
+                            
+                            currentSeasonEpisodes.forEach { episodeElement ->
+                                val name = episodeElement.text().trim()
+                                val href = episodeElement.attr("href")
+                                
+                                if (name.isBlank() || href.isBlank()) return@forEach
+                                
+                                // Bölüm numarasını extract et
+                                val episodeNum = when {
+                                    name.contains("Bölüm", ignoreCase = true) -> {
+                                        val lowerName = name.lowercase()
+                                        val numText = lowerName.substringAfter("bölüm").trim()
+                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                    }
+                                    name.contains("Bolum", ignoreCase = true) -> {
+                                        val lowerName = name.lowercase()
+                                        val numText = lowerName.substringAfter("bolum").trim()
+                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                    }
+                                    name.matches(Regex(".*\\d+.*", RegexOption.IGNORE_CASE)) -> {
+                                        name.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                    }
+                                    else -> 1 // Bölüm numarası bulunamazsa 1 atanır
+                                }
+                                
+                                // URL'yi fix
+                                val data = fixUrlNull(href)
+                                if (data != null) {
+                                    val fullUrl = if (data.startsWith("?") || data.startsWith("/")) {
+                                        if (data.startsWith("?")) url + data else mainUrl + data
+                                    } else {
+                                        data
+                                    }
+                                    
+                                    Log.d(this@Dizifun.name, "Tahmin edilen bölüm ekleniyor: name=$name, season=$seasonId, episode=$episodeNum, url=$fullUrl")
+                                    
+                                    allEpisodes.add(
+                                        newEpisode(fullUrl) {
+                                            this.name = name
+                                            this.season = seasonId
+                                            this.episode = episodeNum ?: 1
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        // Hiçbir sezon belirteci bulunamadı, tüm bölümleri tek sezon olarak işle
+                        Log.d(this@Dizifun.name, "Sezon belirteci bulunamadı, tüm bölümler tek sezon olarak işleniyor")
+                        
+                        val episodeElements = document.select("a[href*=bolum], a[href*=izle], a.episode-button, div.episode-button, li.episode a, a.btn-episode, a.dizi-parts")
+                        Log.d(this@Dizifun.name, "Toplam bölüm sayısı: ${episodeElements.size}")
                         
                         episodeElements.forEach { episodeElement ->
                             val name = episodeElement.text().trim()
                             val href = episodeElement.attr("href")
                             
-                            Log.d(this@Dizifun.name, "Episode element: name=$name, href=$href")
+                            if (name.isBlank() || href.isBlank()) return@forEach
                             
                             // Bölüm numarasını extract et
                             val episodeNum = when {
@@ -478,129 +743,13 @@ class Dizifun : MainAPI() {
                                     val numText = lowerName.substringAfter("bölüm").trim()
                                     numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
-                                name.contains("Bölum", ignoreCase = true) -> {
-                                    val lowerName = name.lowercase()
-                                    val numText = lowerName.substringAfter("bölum").trim()
-                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                }
                                 name.contains("Bolum", ignoreCase = true) -> {
                                     val lowerName = name.lowercase()
                                     val numText = lowerName.substringAfter("bolum").trim()
                                     numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
-                                name.contains("Episode", ignoreCase = true) -> {
-                                    val lowerName = name.lowercase()
-                                    val numText = lowerName.substringAfter("episode").trim()
-                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                }
-                                name.contains("B.", ignoreCase = true) -> {
-                                    val lowerName = name.lowercase()
-                                    val numText = lowerName.substringAfter("b.").trim()
-                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                }
                                 name.matches(Regex(".*\\d+.*", RegexOption.IGNORE_CASE)) -> {
                                     name.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                }
-                                else -> 1 // Bölüm numarası bulunamazsa 1 atanır
-                            }
-                            
-                            Log.d(this@Dizifun.name, "Extracted episode number: $episodeNum")
-                            
-                            // URL'yi fix
-                            val data = if (href.isNotBlank()) {
-                                fixUrlNull(href)
-                            } else {
-                                null
-                            }
-                            
-                            if (data == null) {
-                                Log.d(this@Dizifun.name, "Skipping episode with invalid URL")
-                                return@forEach
-                            }
-                            
-                            val fullUrl = if (data.startsWith("?") || data.startsWith("/")) {
-                                if (data.startsWith("?")) url + data else mainUrl + data
-                            } else {
-                                data
-                            }
-                            
-                            Log.d(this@Dizifun.name, "Adding episode: name=$name, season=$seasonId, episode=$episodeNum, url=$fullUrl")
-                            
-                            allEpisodes.add(
-                                newEpisode(fullUrl) {
-                                    this.name = name
-                                    this.season = seasonId
-                                    this.episode = episodeNum ?: 1
-                                }
-                            )
-                        }
-                    }
-                } else {
-                    // Alternatif bölüm seçicisi - sezon tabları yoksa
-                    val episodeElements = document.select("div.episode-button, div.bolumtitle a, a.episode-button, div.episodes div, div.episodes a, a[href*=bolum], li.episode a, a.btn-episode, a[href*=izle], a.dizi-parts, a[href*=sezon], a[href*=season]")
-                    Log.d(this@Dizifun.name, "Found ${episodeElements.size} episode elements (alternative selector)")
-                    
-                    episodeElements.forEach { episodeElement ->
-                        val name = episodeElement.text().trim()
-                        val href = episodeElement.attr("href")
-                        
-                        Log.d(this@Dizifun.name, "Alternative episode element: name=$name, href=$href")
-                        
-                        if (name.isNotBlank() && href.isNotBlank()) {
-                            // Sezon numarasını bulmaya çalış
-                            val seasonNum = when {
-                                href.contains("sezon", ignoreCase = true) || href.contains("season", ignoreCase = true) -> {
-                                    val seasonRegex = Regex("(?:sezon|season)[\\s-]*([0-9]+)", RegexOption.IGNORE_CASE)
-                                    val matchResult = seasonRegex.find(href)
-                                    matchResult?.groupValues?.get(1)?.toIntOrNull() ?: 1
-                                }
-                                name.contains("sezon", ignoreCase = true) || name.contains("season", ignoreCase = true) -> {
-                                    val seasonRegex = Regex("(?:sezon|season)[\\s-]*([0-9]+)", RegexOption.IGNORE_CASE)
-                                    val matchResult = seasonRegex.find(name)
-                                    matchResult?.groupValues?.get(1)?.toIntOrNull() ?: 1
-                                }
-                                else -> 1
-                            }
-                            
-                            // Bölüm numarasını extract et
-                            val episodeNum = when {
-                                name.contains("Bölüm", ignoreCase = true) -> {
-                                    val lowerName = name.lowercase()
-                                    val numText = lowerName.substringAfter("bölüm").trim()
-                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                }
-                                name.contains("Bölum", ignoreCase = true) -> {
-                                    val lowerName = name.lowercase()
-                                    val numText = lowerName.substringAfter("bölum").trim()
-                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                }
-                                name.contains("Bolum", ignoreCase = true) -> {
-                                    val lowerName = name.lowercase()
-                                    val numText = lowerName.substringAfter("bolum").trim()
-                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                }
-                                name.contains("Episode", ignoreCase = true) -> {
-                                    val lowerName = name.lowercase()
-                                    val numText = lowerName.substringAfter("episode").trim()
-                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                }
-                                name.contains("B.", ignoreCase = true) -> {
-                                    val lowerName = name.lowercase()
-                                    val numText = lowerName.substringAfter("b.").trim()
-                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                }
-                                href.contains("bolum", ignoreCase = true) || href.contains("episode", ignoreCase = true) -> {
-                                    val episodeRegex = Regex("(?:bolum|episode)[\\s-]*([0-9]+)", RegexOption.IGNORE_CASE)
-                                    val matchResult = episodeRegex.find(href)
-                                    matchResult?.groupValues?.get(1)?.toIntOrNull()
-                                }
-                                name.matches(Regex(".*\\d+.*", RegexOption.IGNORE_CASE)) -> {
-                                    name.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                }
-                                href.matches(Regex(".*\\d+.*", RegexOption.IGNORE_CASE)) -> {
-                                    // URL'den sayıyı çıkar - son rakam genellikle bölüm numarasıdır
-                                    val numbers = Regex("\\d+").findAll(href).map { it.value.toInt() }.toList()
-                                    numbers.lastOrNull()
                                 }
                                 else -> 1 // Bölüm numarası bulunamazsa 1 atanır
                             }
@@ -614,12 +763,12 @@ class Dizifun : MainAPI() {
                                     data
                                 }
                                 
-                                Log.d(this@Dizifun.name, "Adding alternative episode: name=$name, season=$seasonNum, episode=$episodeNum, url=$fullUrl")
+                                Log.d(this@Dizifun.name, "Tek sezon bölüm ekleniyor: name=$name, season=1, episode=$episodeNum, url=$fullUrl")
                                 
                                 allEpisodes.add(
                                     newEpisode(fullUrl) {
                                         this.name = name
-                                        this.season = seasonNum
+                                        this.season = 1
                                         this.episode = episodeNum ?: 1
                                     }
                                 )
@@ -638,11 +787,10 @@ class Dizifun : MainAPI() {
                             }
                         )
                     }
-                }
-                
-                Log.d(this@Dizifun.name, "Total episodes found: ${allEpisodes.size}")
-                allEpisodes
-            } else null
+                    
+                    Log.d(this@Dizifun.name, "Total episodes found: ${allEpisodes.size}")
+                    allEpisodes
+                } else null
 
             return if (type == TvType.TvSeries) {
                 newTvSeriesLoadResponse(title, url, type, episodes ?: emptyList()) {
