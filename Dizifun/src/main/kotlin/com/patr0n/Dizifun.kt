@@ -43,15 +43,33 @@ class Dizifun : MainAPI() {
         // Dizifun ana sayfasındaki içerikleri çekmek için ana seçiciler
         val home = ArrayList<SearchResponse>()
         
-        // Editör seçimleri bölümünü tara
-        document.select("div.editor_sec-item, div.movies_recent-item, div.featuredseries_recent-item, div.plattab_recent-item").forEach { element ->
-            val result = element.toMainPageResult()
-            if (result != null) {
-                home.add(result)
+        // Ana kategorileri işle
+        document.select("div.container div.row").forEach { rowElement ->
+            // Kategori başlığını bul (opsiyonel)
+            val categoryTitle = rowElement.selectFirst("h4")?.text()?.trim()
+            
+            if (categoryTitle != null) {
+                // Başlık altındaki div.col-md-2 içeriklerini al
+                rowElement.select("div.col-md-2").forEach { colElement ->
+                    val result = colElement.toMainPageResult()
+                    if (result != null) {
+                        home.add(result)
+                    }
+                }
             }
         }
         
-        // Başka bir içerik formatını kontrol et - son eklenen bölümler
+        // Editör seçimleri bölümünü tara
+        if (home.isEmpty()) {
+            document.select("div.editor_sec-item, div.movies_recent-item, div.featuredseries_recent-item, div.plattab_recent-item").forEach { element ->
+                val result = element.toMainPageResult()
+                if (result != null) {
+                    home.add(result)
+                }
+            }
+        }
+        
+        // Son eklenen bölümler bölümünü kontrol et
         if (home.isEmpty()) {
             document.select("div.episode-item").forEach { element ->
                 val result = element.toEpisodeResult()
@@ -94,6 +112,7 @@ class Dizifun : MainAPI() {
             this.selectFirst("h3.plattab_recent-title") != null -> this.selectFirst("h3.plattab_recent-title")?.text()?.trim()
             this.selectFirst("h5.uk-panel-title") != null -> this.selectFirst("h5.uk-panel-title")?.text()?.trim()
             this.selectFirst("div.name") != null -> this.selectFirst("div.name")?.text()?.trim()
+            this.selectFirst("a > strong") != null -> this.selectFirst("a > strong")?.text()?.trim()
             else -> null
         } ?: return null
         
@@ -119,6 +138,7 @@ class Dizifun : MainAPI() {
         }
         
         // Yılı bul
+        val yearText = this.text()
         val year = when {
             this.selectFirst("p.editor_sec-date") != null -> this.selectFirst("p.editor_sec-date")?.text()?.trim()?.toIntOrNull()
             this.selectFirst("p.movies_recent-date") != null -> this.selectFirst("p.movies_recent-date")?.text()?.trim()?.toIntOrNull()
@@ -126,11 +146,16 @@ class Dizifun : MainAPI() {
             this.selectFirst("p.plattab_recent-date") != null -> this.selectFirst("p.plattab_recent-date")?.text()?.trim()?.toIntOrNull()
             this.selectFirst("span.uk-display-block.uk-text-muted") != null -> this.selectFirst("span.uk-display-block.uk-text-muted")?.text()?.trim()?.toIntOrNull()
             this.selectFirst("div.date") != null -> this.selectFirst("div.date")?.text()?.substringBefore("-")?.trim()?.toIntOrNull()
+            yearText.contains(Regex("\\b\\d{4}\\b")) -> Regex("\\b(\\d{4})\\b").find(yearText)?.groupValues?.get(1)?.toIntOrNull()
             else -> null
         }
         
         // URL'ye göre içerik tipini belirle
-        val type = if (href.contains("/dizi/")) TvType.TvSeries else TvType.Movie
+        val type = if (href.contains("/dizi/") || href.contains("sezon") || href.contains("bolum")) {
+            TvType.TvSeries
+        } else {
+            TvType.Movie
+        }
 
         return newMovieSearchResponse(title, href, type) {
             this.posterUrl = posterUrl
@@ -142,11 +167,21 @@ class Dizifun : MainAPI() {
         val document = app.get("$mainUrl/arama?query=$query").document
         val searchResults = ArrayList<SearchResponse>()
         
-        // Farklı içerik tiplerini tara
-        document.select("div.uk-overlay.uk-overlay-hover, div.editor_sec-item, div.movies_recent-item, div.featuredseries_recent-item, div.episode-item").forEach { element ->
-            val result = element.toSearchResult()
+        // Ana arama sonuçlarını tara
+        document.select("div.col-md-2").forEach { element ->
+            val result = element.toMainPageResult()
             if (result != null) {
                 searchResults.add(result)
+            }
+        }
+        
+        // Alternatif arama sonuçlarını tara
+        if (searchResults.isEmpty()) {
+            document.select("div.uk-overlay.uk-overlay-hover, div.editor_sec-item, div.movies_recent-item, div.featuredseries_recent-item, div.episode-item").forEach { element ->
+                val result = element.toSearchResult()
+                if (result != null) {
+                    searchResults.add(result)
+                }
             }
         }
         
@@ -159,6 +194,7 @@ class Dizifun : MainAPI() {
             this.selectFirst("h3.editor_sec-title, h3.movies_recent-title, h3.featuredseries_recent-title, h5.uk-panel-title") != null -> 
                 this.selectFirst("h3.editor_sec-title, h3.movies_recent-title, h3.featuredseries_recent-title, h5.uk-panel-title")?.text()?.trim()
             this.selectFirst("div.name") != null -> this.selectFirst("div.name")?.text()?.trim()
+            this.selectFirst("a > strong") != null -> this.selectFirst("a > strong")?.text()?.trim()
             else -> null
         } ?: return null
         
@@ -180,16 +216,22 @@ class Dizifun : MainAPI() {
         }
         
         // Yılı bul
+        val yearText = this.text()
         val year = when {
             this.selectFirst("p.editor_sec-date, p.movies_recent-date, p.featuredseries_recent-date") != null -> 
                 this.selectFirst("p.editor_sec-date, p.movies_recent-date, p.featuredseries_recent-date")?.text()?.trim()?.toIntOrNull()
             this.selectFirst("span.uk-display-block.uk-text-muted") != null -> this.selectFirst("span.uk-display-block.uk-text-muted")?.text()?.trim()?.toIntOrNull()
             this.selectFirst("div.date") != null -> this.selectFirst("div.date")?.text()?.substringBefore("-")?.trim()?.toIntOrNull()
+            yearText.contains(Regex("\\b\\d{4}\\b")) -> Regex("\\b(\\d{4})\\b").find(yearText)?.groupValues?.get(1)?.toIntOrNull()
             else -> null
         }
         
         // İçerik tipini belirle
-        val type = if (href.contains("/dizi/")) TvType.TvSeries else TvType.Movie
+        val type = if (href.contains("/dizi/") || href.contains("sezon") || href.contains("bolum")) {
+            TvType.TvSeries
+        } else {
+            TvType.Movie
+        }
 
         return newMovieSearchResponse(title, href, type) {
             this.posterUrl = posterUrl
@@ -201,38 +243,49 @@ class Dizifun : MainAPI() {
         val document = app.get(url).document
 
         // Başlığı bul
-        val title = document.selectFirst("h1.text-bold, div.titlemob")?.text()?.trim() ?: return null
+        val title = document.selectFirst("h1.text-bold, div.titlemob, div.head-title > h1")?.text()?.trim() ?: return null
         
         // Posteri bul
         val poster = fixUrlNull(document.selectFirst("div.media-cover img, img.imgboyut, img.responsive-img")?.attr("src"))
         
         // Yılı bul
-        val yearText = document.select("ul.subnav li").find { it.text().contains("Yıl:") || it.text().contains("Dizi Yılı:") }?.text() ?: ""
+        val yearText = document.select("ul.subnav li, div.content_data").find { it.text().contains("Yıl:") || it.text().contains("Dizi Yılı:") }?.text() ?: ""
         val year = yearText.substringAfter("Yıl:").substringAfter("Dizi Yılı:").trim().toIntOrNull()
         
         // Açıklamayı bul
-        val description = document.selectFirst("p.text-muted, div.descmobi")?.text()?.trim()
+        val description = document.selectFirst("p.text-muted, div.descmobi, div.content_data > p")?.text()?.trim()
         
         // İçerik tipini belirle
-        val type = if (url.contains("/dizi/")) TvType.TvSeries else TvType.Movie
+        val type = if (url.contains("/dizi/") || url.contains("sezon") || url.contains("bolum")) {
+            TvType.TvSeries
+        } else {
+            TvType.Movie
+        }
         
         // Ek bilgileri bul
-        val rating = document.selectFirst("span.rating")?.text()?.toRatingInt()
-        val duration = document.selectFirst("span.runtime")?.text()?.split(" ")?.firstOrNull()?.toIntOrNull()
+        val rating = document.selectFirst("span.rating, span.rate")?.text()?.toRatingInt()
+        val duration = document.selectFirst("span.runtime, div.content_data")?.text()?.let { 
+            val durationRegex = Regex("(\\d+)\\s*dk")
+            val match = durationRegex.find(it)
+            match?.groupValues?.get(1)?.toIntOrNull()
+        }
         
         // Kategori bilgilerini bul
-        val tags = document.select("div.genres a, ul.subnav li a, div.series-info").map { it.text().trim() }
+        val tags = document.select("div.genres a, ul.subnav li a, div.series-info, div.content_data span").map { it.text().trim() }
         
         // Oyuncuları bul
-        val actors = document.select("div.actors-container div.actor-card").mapNotNull {
-            Actor(
-                it.selectFirst("span.actor-name")?.text()?.trim() ?: return@mapNotNull null,
-                fixUrlNull(it.selectFirst("img")?.attr("src"))
-            )
+        val actors = document.select("div.actors-container div.actor-card, div.oyuncular span").mapNotNull {
+            val actorName = it.selectFirst("span.actor-name")?.text()?.trim() 
+                ?: it.text().trim()
+                ?: return@mapNotNull null
+                
+            val actorImg = fixUrlNull(it.selectFirst("img")?.attr("src"))
+            
+            Actor(actorName, actorImg)
         }
         
         // Fragmanı bul
-        val trailer = document.selectFirst("iframe[src*=youtube]")?.attr("src")?.let { fixUrl(it) }
+        val trailer = document.selectFirst("iframe[src*=youtube], a.trailer-button")?.attr("src")?.let { fixUrl(it) }
 
         // Bölümleri bul (dizi ise)
         val episodes = if (type == TvType.TvSeries) {
@@ -245,7 +298,7 @@ class Dizifun : MainAPI() {
                     val seasonId = seasonTab.attr("id").replace("season", "").toIntOrNull() ?: 1
                     
                     // Her sezon tab'ındaki bölümleri bul
-                    seasonTab.select("div.bolumtitle a, a[href*=episode]").forEach { episodeElement ->
+                    seasonTab.select("div.bolumtitle a, a[href*=episode], a.episode-button").forEach { episodeElement ->
                         val name = episodeElement.text().trim()
                         // Bölüm numarasını extrakt et
                         val episodeNum = name.substringAfter("Bölüm").trim().toIntOrNull() 
@@ -266,28 +319,30 @@ class Dizifun : MainAPI() {
                 }
             } else {
                 // Alternatif bölüm seçicisi - sezon tabları yoksa
-                document.select("div.episode-button, div.bolumtitle a").forEach { episodeElement ->
+                document.select("div.episode-button, div.bolumtitle a, a.episode-button, div.episodes div, div.episodes a").forEach { episodeElement ->
                     val name = episodeElement.text().trim()
-                    val episodeNum = name.substringAfter("Bölüm").trim().toIntOrNull() 
-                        ?: name.replace(Regex("[^0-9]"), "").toIntOrNull()
-                        ?: return@forEach
-                    
-                    val href = episodeElement.attr("href")
-                    val parent = episodeElement.parent()
-                    val data = if (href.isNotBlank()) {
-                        fixUrlNull(href)
-                    } else {
-                        fixUrlNull(parent?.attr("href"))
-                    } ?: return@forEach
-                    
-                    val fullUrl = if (data.startsWith("?")) url + data else data
-                    
-                    allEpisodes.add(
-                        newEpisode(fullUrl) {
-                            this.name = name
-                            this.episode = episodeNum
-                        }
-                    )
+                    if (name.contains("Bölüm") || name.contains("Bölum") || name.matches(Regex(".*\\d+.*"))) {
+                        val episodeNum = name.substringAfter("Bölüm").substringAfter("Bölum").trim().toIntOrNull() 
+                            ?: name.replace(Regex("[^0-9]"), "").toIntOrNull()
+                            ?: return@forEach
+                        
+                        val href = episodeElement.attr("href")
+                        val parent = episodeElement.parent()
+                        val data = if (href.isNotBlank()) {
+                            fixUrlNull(href)
+                        } else {
+                            fixUrlNull(parent?.attr("href"))
+                        } ?: return@forEach
+                        
+                        val fullUrl = if (data.startsWith("?")) url + data else data
+                        
+                        allEpisodes.add(
+                            newEpisode(fullUrl) {
+                                this.name = name
+                                this.episode = episodeNum
+                            }
+                        )
+                    }
                 }
             }
             
@@ -326,7 +381,7 @@ class Dizifun : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         val document = app.get(data).document
-        val iframe = document.selectFirst("iframe#playerFrame, iframe")?.attr("src") ?: return false
+        val iframe = document.selectFirst("iframe#playerFrame, iframe, div.video-bak iframe")?.attr("src") ?: return false
         
         val headers = mapOf(
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
@@ -355,9 +410,11 @@ class Dizifun : MainAPI() {
                 val m3u8Regex = Regex("['\"](https?://[^'\"]*\\.m3u8[^'\"]*)['\"]")
                 val mp4Regex = Regex("['\"](https?://[^'\"]*\\.mp4[^'\"]*)['\"]")
                 val hexRegex = Regex("hexToString\\(\"([0-9a-fA-F]+)\"\\)")
+                val embedRegex = Regex("src=['\"](.+?)['\"]")
                 
                 val m3u8Match = m3u8Regex.find(pageSource)?.groupValues?.get(1)
                 val mp4Match = mp4Regex.find(pageSource)?.groupValues?.get(1)
+                val embedMatch = embedRegex.find(pageSource)?.groupValues?.get(1)
                 
                 // Hex kodlanmış URL'yi kontrol et
                 val hexMatch = hexRegex.find(pageSource)?.groupValues?.get(1)
@@ -374,6 +431,25 @@ class Dizifun : MainAPI() {
                 
                 if (videoUrl.isNullOrBlank()) {
                     videoUrl = m3u8Match ?: mp4Match
+                }
+                
+                // Eğer embed video varsa ve video hala bulunamadıysa
+                if (videoUrl.isNullOrBlank() && !embedMatch.isNullOrBlank()) {
+                    val embedUrl = when {
+                        embedMatch.startsWith("//") -> "https:$embedMatch"
+                        !embedMatch.startsWith("http") -> "$mainUrl$embedMatch"
+                        else -> embedMatch
+                    }
+                    
+                    try {
+                        val embedDoc = app.get(embedUrl, headers = headers).document
+                        val embedSource = embedDoc.outerHtml()
+                        
+                        videoUrl = m3u8Regex.find(embedSource)?.groupValues?.get(1)
+                            ?: mp4Regex.find(embedSource)?.groupValues?.get(1)
+                    } catch (e: Exception) {
+                        Log.e(this.name, "Error processing embed: ${e.message}")
+                    }
                 }
             }
             
