@@ -33,6 +33,8 @@ class Dizifun : MainAPI() {
         "${mainUrl}/hbomax"             to "HboMax Dizileri",
         "${mainUrl}/paramount"          to "Paramount+ Dizileri",
         "${mainUrl}/unutulmaz"          to "Unutulmaz Diziler",
+        "${mainUrl}/category/filmler"   to "Filmler",
+        "${mainUrl}/category/diziler"  to "Güncel Diziler"
         "${mainUrl}/category/filmler"   to "Filmler"
     )
 
@@ -44,10 +46,10 @@ class Dizifun : MainAPI() {
 
             val href = fixUrlNull(this.selectFirst(".uk-position-cover, a[href], a")?.attr("href")) ?: return null
             
-            val posterUrl = fixUrlNull(this.selectFirst(".uk-overlay img, img[src], .film-image img, .dizi-image img")?.attr("src"))
+            val posterUrl = fixUrlNull(this.selectFirst("img[data-src], .uk-overlay img, .film-image img, .dizi-image img")?.attr("data-src"))
             
             val year = this.selectFirst(".release, span.year, div.year")?.text()?.trim()?.let { 
-                Regex("(\\d{4})").find(it)?.groupValues?.get(1)?.toIntOrNull() 
+                Regex("(\\d{4})(\\s*[-–]\\s*(\\d{4}))?").find(it)?.groupValues?.get(1)?.toIntOrNull() 
             }
 
             return if (href.contains("/film/") || href.contains("/movie/") || href.contains("/filmler/")) {
@@ -106,11 +108,11 @@ class Dizifun : MainAPI() {
             val href = fixUrlNull(this.selectFirst(".uk-position-cover, a[href], a")?.attr("href")) ?: return null
             
             // Farklı resim seçicilerini dene
-            val posterUrl = fixUrlNull(this.selectFirst(".uk-overlay img, img[src], .film-image img, .dizi-image img")?.attr("src"))
+            val posterUrl = fixUrlNull(this.selectFirst("img[data-src], .uk-overlay img, .film-image img, .dizi-image img")?.attr("data-src"))
             
             // Yıl bilgisini bulmaya çalış
             val year = this.selectFirst(".release, span.year, div.year")?.text()?.trim()?.let { 
-                Regex("(\\d{4})").find(it)?.groupValues?.get(1)?.toIntOrNull() 
+                Regex("(\\d{4})(\\s*[-–]\\s*(\\d{4}))?").find(it)?.groupValues?.get(1)?.toIntOrNull() 
             }
 
             return if (href.contains("/film/") || href.contains("/movie/") || href.contains("/filmler/")) {
@@ -170,7 +172,7 @@ class Dizifun : MainAPI() {
                 
             // Yıl bilgisini farklı seçicilerden bulmaya çalış
             val year = document.selectFirst("li.release, span.year, div.year, [itemprop='dateCreated']")
-                ?.text()?.trim()?.let { Regex("(\\d{4})").find(it)?.groupValues?.get(1)?.toIntOrNull() }
+                ?.text()?.trim()?.let { Regex("(\\d{4})(\\s*[-–]\\s*(\\d{4}))?").find(it)?.groupValues?.get(1)?.toIntOrNull() }
                 
             // Farklı seçicilerden açıklama bilgisini al
             val description = document.selectFirst("div.description, [itemprop='description'], .content-desc, .summary")?.text()?.trim()
