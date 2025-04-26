@@ -69,7 +69,7 @@ class Dizifun : MainAPI() {
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         Log.d(this@Dizifun.name, "Loading main page: ${request.data}")
         
-        // Sayfa içeriğini al, headers ekleyerek
+        // Sayfayı yükle
         val response = app.get(
             request.data,
             headers = defaultHeaders,
@@ -77,228 +77,187 @@ class Dizifun : MainAPI() {
             cacheTime = 0
         )
         
-        // HTML yanıtının ilk birkaç karakterini logla
-        val html = response.document.outerHtml()
-        logResponse(request.data, html)
-        
         val document = response.document
-        
-        // Dizifun ana sayfasındaki içerikleri çekmek için ana seçiciler
         val home = ArrayList<SearchResponse>()
         
-        // Netflix ve diğer kategori sayfaları için özel olarak bu seçiciyi kullan
-        val specialCategoryItems = document.select("div.uk-overlay.uk-overlay-hover")
-        Log.d(this@Dizifun.name, "Found ${specialCategoryItems.size} special category items in ${request.name}")
-        
-        specialCategoryItems.forEach { element ->
-            val parent = element.parent() ?: return@forEach
-            val panel = parent.selectFirst("div.uk-panel")
-            
-            // Başlık bul
-            val title = panel?.selectFirst("h5.uk-panel-title")?.text()?.trim()
-            if (!title.isNullOrBlank()) {
-                // Link bul
-                val href = element.selectFirst("a.uk-position-cover")?.attr("href")
-                if (!href.isNullOrBlank()) {
-                    // Poster bul
-                    val posterUrl = element.selectFirst("div.platformmobile img, img")?.attr("src")
-                    
-                    // Yıl bul
-                    val yearText = panel.selectFirst("span.uk-display-block.uk-text-muted")?.text()?.trim()
-                    val year = yearText?.toIntOrNull()
-                    
-                    // Tür belirle
-                    val type = if (href.contains("/dizi/")) TvType.TvSeries else TvType.Movie
-                    
-                    home.add(newMovieSearchResponse(title, href, type) {
-                        this.posterUrl = fixUrlNull(posterUrl)
-                        this.year = year
-                    })
-                }
+        // Kategoriye göre uygun seçicileri tanımla
+        val selectors = when {
+            request.name.contains("Netflix") || request.name.contains("Disney") || 
+            request.name.contains("Prime") || request.name.contains("HBO") || 
+            request.name.contains("Exxen") || request.name.contains("BluTV") || 
+            request.name.contains("Gain") || request.name.contains("Hulu") ||
+            request.name.contains("Paramount") || request.name.contains("Tabii") ||
+            request.name.contains("TodTV") || request.name.contains("Unutulmaz") -> {
+                // Platform sayfaları için özel seçici
+                "div.uk-overlay.uk-overlay-hover, article, div.col-md-2"
+            }
+            else -> {
+                // Genel sayfalar için tüm seçiciler
+                "div.uk-overlay.uk-overlay-hover, div.col-md-2, div.movies_recent-item, div.editor_sec-item, " +
+                "div.featuredseries_recent-item, div.plattab_recent-item, div.episode-item, article"
             }
         }
         
-        // Eğer yukarıdaki özel yapıda içerik bulunamadıysa, normal içerik yapılarını dene
-        if (home.isEmpty()) {
-            // Tüm içerik türlerini tek bir seferde topla
-            val allContentItems = document.select(
-                "div.col-md-2, " +
-                "div.movies_recent-item, " + 
-                "div.editor_sec-item, " + 
-                "div.featuredseries_recent-item, " + 
-                "div.plattab_recent-item, " +
-                "div.episode-item, " +
-                "article" // Bazı kategorilerde içerikler article içinde olabilir
-            )
-            
-            Log.d(this@Dizifun.name, "Found total ${allContentItems.size} items in category: ${request.name}")
-            
-            allContentItems.forEach { element ->
-                var result: SearchResponse? = null
-                
-                // Her bir HTML yapısı için uygun işleme fonksiyonunu çağır
-                if (element.hasClass("episode-item")) {
-                    result = element.toEpisodeResult()
-                } else {
-                    result = element.toMainPageResult()
+        // Seçilen tüm içerikleri topla
+        val allContentItems = document.select(selectors)
+        Log.d(this@Dizifun.name, "Found ${allContentItems.size} content items in ${request.name}")
+        
+        allContentItems.forEach { element ->
+            try {
+                // Başlık bulma
+                val title = extractTitle(element)
+                if (!title.isNullOrBlank()) {
+                    // URL bulma
+                    val href = extractHref(element)
+                    if (!href.isNullOrBlank()) {
+                        // Poster URL bulma
+                        val posterUrl = extractPosterUrl(element)
+                        
+                        // Yıl bulma
+                        val year = extractYear(element)
+                        
+                        // İçerik tipi belirleme
+                        val type = determineContentType(href, title)
+                        
+                        home.add(newMovieSearchResponse(title, href, type) {
+                            this.posterUrl = posterUrl
+                            this.year = year
+                        })
+                    }
                 }
-                
-                if (result != null) {
-                    home.add(result)
-                }
+            } catch (e: Exception) {
+                Log.e(this@Dizifun.name, "Error processing content item: ${e.message}")
             }
         }
         
         Log.d(this@Dizifun.name, "Total processed items for ${request.name}: ${home.size}")
         return newHomePageResponse(request.name, home)
     }
-
-    private fun Element.toEpisodeResult(): SearchResponse? {
-        val title = this.selectFirst("div.name")?.text()?.trim() ?: return null
-        val href = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
-        
-        // Diziler için TvType.TvSeries olarak işaretle
-        return newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-            this.posterUrl = posterUrl
-        }
-    }
-
-    private fun Element.toMainPageResult(): SearchResponse? {
-        // HTML yapısını debug için loglayalım
-        // Log.d("Dizifun", "Examining element: ${this.outerHtml().take(200)}...")
-        
-        // Dizi/film başlığını bul
-        val title = when {
-            this.selectFirst("h3.editor_sec-title") != null -> this.selectFirst("h3.editor_sec-title")?.text()?.trim()
-            this.selectFirst("h3.movies_recent-title") != null -> this.selectFirst("h3.movies_recent-title")?.text()?.trim()
-            this.selectFirst("h3.featuredseries_recent-title") != null -> this.selectFirst("h3.featuredseries_recent-title")?.text()?.trim()
-            this.selectFirst("h3.plattab_recent-title") != null -> this.selectFirst("h3.plattab_recent-title")?.text()?.trim()
-            this.selectFirst("h5.uk-panel-title") != null -> this.selectFirst("h5.uk-panel-title")?.text()?.trim()
-            this.selectFirst("div.name") != null -> this.selectFirst("div.name")?.text()?.trim()
-            this.selectFirst("a > strong") != null -> this.selectFirst("a > strong")?.text()?.trim()
-            this.selectFirst("h1, h2, h3, h4, h5, h6") != null -> this.selectFirst("h1, h2, h3, h4, h5, h6")?.text()?.trim()
-            this.selectFirst("strong") != null -> this.selectFirst("strong")?.text()?.trim()
+    
+    // Başlık çıkarma fonksiyonu
+    private fun extractTitle(element: Element): String? {
+        return when {
+            element.selectFirst("h3.editor_sec-title, h3.movies_recent-title, h3.featuredseries_recent-title, h5.uk-panel-title") != null -> 
+                element.selectFirst("h3.editor_sec-title, h3.movies_recent-title, h3.featuredseries_recent-title, h5.uk-panel-title")?.text()?.trim()
+            element.selectFirst("div.name") != null -> element.selectFirst("div.name")?.text()?.trim()
+            element.selectFirst("a > strong") != null -> element.selectFirst("a > strong")?.text()?.trim()
+            element.selectFirst("h1, h2, h3, h4, h5, h6") != null -> element.selectFirst("h1, h2, h3, h4, h5, h6")?.text()?.trim()
+            element.selectFirst("strong") != null -> element.selectFirst("strong")?.text()?.trim()
             else -> {
                 // Alternatif başlık bulma yöntemleri
-                val img = this.selectFirst("img")
+                val img = element.selectFirst("img")
                 if (img != null) {
                     img.attr("alt").takeIf { !it.isNullOrBlank() }
                 } else {
                     // Eğer hiçbir başlık bulunamadıysa, doğrudan metin içeriğini dene
-                    this.ownText().takeIf { !it.isBlank() }
+                    element.ownText().takeIf { !it.isBlank() }
                 }
             }
         }
-        
-        if (title.isNullOrBlank()) {
-            // Log.d("Dizifun", "No title found in element")
-            return null
-        }
-        
-        // Link URL'sini bul
+    }
+    
+    // URL çıkarma fonksiyonu
+    private fun extractHref(element: Element): String? {
         val href = when {
-            this.selectFirst("a.editor_sec-link") != null -> fixUrlNull(this.selectFirst("a.editor_sec-link")?.attr("href"))
-            this.selectFirst("a.movies_recent-link") != null -> fixUrlNull(this.selectFirst("a.movies_recent-link")?.attr("href"))
-            this.selectFirst("a.featuredseries_recent-link") != null -> fixUrlNull(this.selectFirst("a.featuredseries_recent-link")?.attr("href"))
-            this.selectFirst("a.plattab_recent-link") != null -> fixUrlNull(this.selectFirst("a.plattab_recent-link")?.attr("href"))
-            this.selectFirst("a.uk-position-cover") != null -> fixUrlNull(this.selectFirst("a.uk-position-cover")?.attr("href"))
-            this.selectFirst("a[href*=dizi], a[href*=film]") != null -> fixUrlNull(this.selectFirst("a[href*=dizi], a[href*=film]")?.attr("href"))
-            this.selectFirst("a") != null -> fixUrlNull(this.selectFirst("a")?.attr("href"))
+            element.selectFirst("a.editor_sec-link, a.movies_recent-link, a.featuredseries_recent-link, a.plattab_recent-link") != null -> 
+                element.selectFirst("a.editor_sec-link, a.movies_recent-link, a.featuredseries_recent-link, a.plattab_recent-link")?.attr("href")
+            element.selectFirst("a.uk-position-cover") != null -> element.selectFirst("a.uk-position-cover")?.attr("href")
+            element.selectFirst("a[href*=dizi], a[href*=film]") != null -> element.selectFirst("a[href*=dizi], a[href*=film]")?.attr("href")
+            element.selectFirst("a") != null -> element.selectFirst("a")?.attr("href")
+            element.tagName() == "a" -> element.attr("href")
             else -> null
         }
         
-        if (href.isNullOrBlank()) {
-            // Kendimiz bir link mi?
-            if (this.tagName() == "a") {
-                val selfHref = fixUrlNull(this.attr("href"))
-                if (!selfHref.isNullOrBlank()) {
-                    return newMovieSearchResponse(title, selfHref, TvType.TvSeries) {
-                        this.posterUrl = this@toMainPageResult.selectFirst("img")?.attr("src")
-                            ?.let { if (it.startsWith("data:")) null else fixUrlNull(it) }
-                    }
-                }
-            }
-            
-            Log.d("Dizifun", "No href found for title: $title")
-            return null
-        }
-        
-        // Poster URL'sini bul
+        return href?.let { fixUrlNull(it) }
+    }
+    
+    // Poster URL çıkarma fonksiyonu
+    private fun extractPosterUrl(element: Element): String? {
         val posterUrl = when {
-            this.selectFirst("img.editor_sec-image") != null -> fixUrlNull(this.selectFirst("img.editor_sec-image")?.attr("src"))
-            this.selectFirst("img.movies_recent-image") != null -> fixUrlNull(this.selectFirst("img.movies_recent-image")?.attr("src"))
-            this.selectFirst("img.featuredseries_recent-image") != null -> fixUrlNull(this.selectFirst("img.featuredseries_recent-image")?.attr("src")) 
-            this.selectFirst("img.plattab_recent-image") != null -> fixUrlNull(this.selectFirst("img.plattab_recent-image")?.attr("src"))
-            this.selectFirst("img") != null -> {
-                val imgSrc = this.selectFirst("img")?.attr("src")
+            element.selectFirst("img.editor_sec-image, img.movies_recent-image, img.featuredseries_recent-image, img.plattab_recent-image") != null -> 
+                element.selectFirst("img.editor_sec-image, img.movies_recent-image, img.featuredseries_recent-image, img.plattab_recent-image")?.attr("src")
+            element.selectFirst("img") != null -> {
+                val imgSrc = element.selectFirst("img")?.attr("src")
                 // Data URI'leri filtrele
-                if (imgSrc?.startsWith("data:") == true) null else fixUrlNull(imgSrc)
+                if (imgSrc?.startsWith("data:") == true) null else imgSrc
             }
             else -> null
         }
         
-        // Yılı bul
-        val yearText = this.text()
-        val year = when {
-            this.selectFirst("p.editor_sec-date") != null -> this.selectFirst("p.editor_sec-date")?.text()?.trim()?.toIntOrNull()
-            this.selectFirst("p.movies_recent-date") != null -> this.selectFirst("p.movies_recent-date")?.text()?.trim()?.toIntOrNull()
-            this.selectFirst("p.featuredseries_recent-date") != null -> this.selectFirst("p.featuredseries_recent-date")?.text()?.trim()?.toIntOrNull()
-            this.selectFirst("p.plattab_recent-date") != null -> this.selectFirst("p.plattab_recent-date")?.text()?.trim()?.toIntOrNull()
-            this.selectFirst("span.uk-display-block.uk-text-muted") != null -> this.selectFirst("span.uk-display-block.uk-text-muted")?.text()?.trim()?.toIntOrNull()
-            this.selectFirst("div.date") != null -> this.selectFirst("div.date")?.text()?.substringBefore("-")?.trim()?.toIntOrNull()
+        return posterUrl?.let { fixUrlNull(it) }
+    }
+    
+    // Yıl çıkarma fonksiyonu
+    private fun extractYear(element: Element): Int? {
+        val yearText = element.text()
+        return when {
+            element.selectFirst("p.editor_sec-date, p.movies_recent-date, p.featuredseries_recent-date, p.plattab_recent-date") != null -> 
+                element.selectFirst("p.editor_sec-date, p.movies_recent-date, p.featuredseries_recent-date, p.plattab_recent-date")?.text()?.trim()?.toIntOrNull()
+            element.selectFirst("span.uk-display-block.uk-text-muted") != null -> element.selectFirst("span.uk-display-block.uk-text-muted")?.text()?.trim()?.toIntOrNull()
+            element.selectFirst("div.date") != null -> element.selectFirst("div.date")?.text()?.substringBefore("-")?.trim()?.toIntOrNull()
             yearText.contains(Regex("\\b\\d{4}\\b")) -> Regex("\\b(\\d{4})\\b").find(yearText)?.groupValues?.get(1)?.toIntOrNull()
             else -> null
         }
-        
-        // İçerik tipini belirle
-        val type = if (href.contains("/dizi/") || href.contains("/diziler/") || url.contains("sezon") || url.contains("bolum") || 
-                   href.contains("netflix") || href.contains("disney") || href.contains("primevideo") || 
-                   href.contains("blutv") || href.contains("gain") || href.contains("exxen") || 
-                   href.contains("tabii-dizileri") || href.contains("hulu") || href.contains("todtv") || 
-                   href.contains("paramount") || href.contains("unutulmaz") || 
-                   (title.contains("Sezon") && !title.contains("Film"))) {
-            Log.d(this@Dizifun.name, "İçerik tipi: Dizi olarak belirlendi (URL: $href)")
+    }
+    
+    // İçerik tipini belirle
+    private fun determineContentType(url: String, title: String): TvType {
+        return if (url.contains("/dizi/") || url.contains("/diziler/") || url.contains("sezon") || url.contains("bolum") || 
+            url.contains("netflix") || url.contains("disney") || url.contains("primevideo") || 
+            url.contains("blutv") || url.contains("gain") || url.contains("exxen") || 
+            url.contains("tabii-dizileri") || url.contains("hulu") || url.contains("todtv") || 
+            url.contains("paramount") || url.contains("unutulmaz") || 
+            (title.contains("Sezon", ignoreCase = true) && !title.contains("Film", ignoreCase = true))) {
             TvType.TvSeries
         } else {
-            Log.d(this@Dizifun.name, "İçerik tipi: Film olarak belirlendi (URL: $href)")
             TvType.Movie
-        }
-
-        return newMovieSearchResponse(title, href, type) {
-            this.posterUrl = posterUrl
-            this.year = year
         }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
-        val searchUrl = "$mainUrl/arama?query=$query"
+        val searchUrl = "$mainUrl/arama?query=${java.net.URLEncoder.encode(query, "UTF-8")}"
         Log.d(this@Dizifun.name, "Searching: $searchUrl")
         
         val document = app.get(searchUrl, headers = defaultHeaders).document
         val searchResults = ArrayList<SearchResponse>()
         
-        // Ana arama sonuçlarını tara
-        val colItems = document.select("div.col-md-2")
-        Log.d(this@Dizifun.name, "Found ${colItems.size} col-md-2 items in search")
+        // Tüm olası içerik seçicileri
+        val selectors = listOf(
+            "div.col-md-2",
+            "div.uk-overlay.uk-overlay-hover",
+            "div.editor_sec-item",
+            "div.movies_recent-item",
+            "div.featuredseries_recent-item",
+            "div.episode-item",
+            "article",
+            "div.platformmobile"
+        )
         
-        colItems.forEach { element ->
-            val result = element.toMainPageResult()
-            if (result != null) {
-                searchResults.add(result)
-            }
-        }
+        // Tüm seçicileri birleştir
+        val allItemSelector = selectors.joinToString(", ")
         
-        // Alternatif arama sonuçlarını tara
-        if (searchResults.isEmpty()) {
-            val altItems = document.select("div.uk-overlay.uk-overlay-hover, div.editor_sec-item, div.movies_recent-item, div.featuredseries_recent-item, div.episode-item")
-            Log.d(this@Dizifun.name, "Found ${altItems.size} alternative items in search")
-            
-            altItems.forEach { element ->
-                val result = element.toSearchResult()
-                if (result != null) {
-                    searchResults.add(result)
+        // Tüm içerikleri topla
+        val allItems = document.select(allItemSelector)
+        Log.d(this@Dizifun.name, "Found ${allItems.size} items in search results")
+        
+        allItems.forEach { element ->
+            try {
+                val title = extractTitle(element)
+                if (!title.isNullOrBlank()) {
+                    val href = extractHref(element)
+                    if (!href.isNullOrBlank()) {
+                        val posterUrl = extractPosterUrl(element)
+                        val year = extractYear(element)
+                        val type = determineContentType(href, title)
+                        
+                        searchResults.add(newMovieSearchResponse(title, href, type) {
+                            this.posterUrl = posterUrl
+                            this.year = year
+                        })
+                    }
                 }
+            } catch (e: Exception) {
+                Log.e(this@Dizifun.name, "Error processing search item: ${e.message}")
             }
         }
         
@@ -306,133 +265,55 @@ class Dizifun : MainAPI() {
         return searchResults
     }
 
-    private fun Element.toSearchResult(): SearchResponse? {
-        // Başlık, URL ve poster için birçok olası seçiciyi kontrol et
-        val title = when {
-            this.selectFirst("h3.editor_sec-title, h3.movies_recent-title, h3.featuredseries_recent-title, h5.uk-panel-title") != null -> 
-                this.selectFirst("h3.editor_sec-title, h3.movies_recent-title, h3.featuredseries_recent-title, h5.uk-panel-title")?.text()?.trim()
-            this.selectFirst("div.name") != null -> this.selectFirst("div.name")?.text()?.trim()
-            this.selectFirst("a > strong") != null -> this.selectFirst("a > strong")?.text()?.trim()
-            else -> {
-                // Alternatif başlık bulma
-                val img = this.selectFirst("img")
-                if (img != null) {
-                    img.attr("alt").takeIf { !it.isNullOrBlank() }
-                } else null
-            }
-        } ?: return null
-        
-        // URL'yi bul
-        val href = when {
-            this.selectFirst("a.editor_sec-link, a.movies_recent-link, a.featuredseries_recent-link") != null -> 
-                fixUrlNull(this.selectFirst("a.editor_sec-link, a.movies_recent-link, a.featuredseries_recent-link")?.attr("href"))
-            this.selectFirst("a.uk-position-cover") != null -> fixUrlNull(this.selectFirst("a.uk-position-cover")?.attr("href"))
-            this.selectFirst("a") != null -> fixUrlNull(this.selectFirst("a")?.attr("href"))
-            else -> null
-        } ?: return null
-        
-        // Poster URL'yi bul
-        val posterUrl = when {
-            this.selectFirst("img.editor_sec-image, img.movies_recent-image, img.featuredseries_recent-image") != null -> 
-                fixUrlNull(this.selectFirst("img.editor_sec-image, img.movies_recent-image, img.featuredseries_recent-image")?.attr("src"))
-            this.selectFirst("img") != null -> fixUrlNull(this.selectFirst("img")?.attr("src"))
-            else -> null
-        }
-        
-        // Yılı bul
-        val yearText = this.text()
-        val year = when {
-            this.selectFirst("p.editor_sec-date, p.movies_recent-date, p.featuredseries_recent-date") != null -> 
-                this.selectFirst("p.editor_sec-date, p.movies_recent-date, p.featuredseries_recent-date")?.text()?.trim()?.toIntOrNull()
-            this.selectFirst("span.uk-display-block.uk-text-muted") != null -> this.selectFirst("span.uk-display-block.uk-text-muted")?.text()?.trim()?.toIntOrNull()
-            this.selectFirst("div.date") != null -> this.selectFirst("div.date")?.text()?.substringBefore("-")?.trim()?.toIntOrNull()
-            yearText.contains(Regex("\\b\\d{4}\\b")) -> Regex("\\b(\\d{4})\\b").find(yearText)?.groupValues?.get(1)?.toIntOrNull()
-            else -> null
-        }
-        
-        // İçerik tipini belirle
-        val type = if (href.contains("/dizi/") || href.contains("sezon") || href.contains("bolum")) {
-            TvType.TvSeries
-        } else {
-            TvType.Movie
-        }
-
-        return newMovieSearchResponse(title, href, type) {
-            this.posterUrl = posterUrl
-            this.year = year
-        }
-    }
-
     override suspend fun load(url: String): LoadResponse? {
         Log.d(this@Dizifun.name, "Loading details: $url")
         
         try {
             val response = app.get(url, headers = defaultHeaders)
-            Log.d(this@Dizifun.name, "HTTP Status: ${response.code}")
-            Log.d(this@Dizifun.name, "Content Type: ${response.headers["Content-Type"]}")
-            
             val document = response.document
-            val htmlContent = document.outerHtml()
-            logResponse(url, htmlContent)
-
+            
             // Başlığı bul
-            var title = document.selectFirst("h1.text-bold, div.titlemob, div.head-title > h1")?.text()?.trim()
+            var title = document.selectFirst("h1.text-bold, div.titlemob, div.head-title > h1, h1.title, .movie-title, .dizi-title")?.text()?.trim()
             Log.d(this@Dizifun.name, "Found title: $title")
             if (title.isNullOrBlank()) {
                 Log.d(this@Dizifun.name, "Title not found, trying alternative selectors")
-                // Try alternative selectors for title
-                title = document.selectFirst("h1, .title, .movie-title, .dizi-title")?.text()?.trim()
-                Log.d(this@Dizifun.name, "Alternative title found: $title")
+                title = document.selectFirst("h1, .title, .movie-title, .dizi-title, .head-title, .main-title")?.text()?.trim()
                 if (title.isNullOrBlank()) {
                     Log.e(this@Dizifun.name, "No title found for $url")
                     return null
                 }
             }
             
-            // Posteri bul - web sayfası içerik resmi kullanabilir
-            val poster = fixUrlNull(document.selectFirst("div.media-cover img, img.imgboyut, img.responsive-img, div.platformmobile img")?.attr("src"))
+            // Posteri bul
+            val poster = extractPosterFromPage(document)
             Log.d(this@Dizifun.name, "Found poster: $poster")
             
             // Yılı bul
-            val yearText = document.select("ul.subnav li, div.content_data").find { it.text().contains("Yıl:") || it.text().contains("Dizi Yılı:") }?.text() ?: ""
-            val year = yearText.substringAfter("Yıl:").substringAfter("Dizi Yılı:").trim().toIntOrNull()
+            val year = extractYearFromPage(document)
             Log.d(this@Dizifun.name, "Found year: $year")
             
             // Açıklamayı bul
-            val description = document.selectFirst("p.text-muted, div.descmobi, div.content_data > p")?.text()?.trim()
-                ?: document.select("div.content_data, div.detail-text, div.description").firstOrNull()?.text()?.trim()
+            val description = extractDescriptionFromPage(document)
             Log.d(this@Dizifun.name, "Found description: ${description?.take(50)}...")
             
             // İçerik tipini belirle
-            val type = if (url.contains("/dizi/") || url.contains("/diziler/") || url.contains("sezon") || url.contains("bolum") || 
-                       url.contains("netflix") || url.contains("disney") || url.contains("primevideo") || 
-                       url.contains("blutv") || url.contains("gain") || url.contains("exxen") || 
-                       url.contains("tabii-dizileri") || url.contains("hulu") || url.contains("todtv") || 
-                       url.contains("paramount") || url.contains("unutulmaz") || 
-                       (title?.contains("Sezon", ignoreCase = true) == true && title?.contains("Film", ignoreCase = true) != true)) {
-                Log.d(this@Dizifun.name, "İçerik tipi: Dizi olarak belirlendi (URL: $url)")
-                TvType.TvSeries
-            } else {
-                Log.d(this@Dizifun.name, "İçerik tipi: Film olarak belirlendi (URL: $url)")
-                TvType.Movie
-            }
+            val type = determineContentType(url, title)
             Log.d(this@Dizifun.name, "Content type: $type")
             
             // Ek bilgileri bul
-            val rating = document.selectFirst("span.rating, span.rate")?.text()?.toRatingInt()
-            val duration = document.selectFirst("span.runtime, div.content_data")?.text()?.let { 
-                val durationRegex = Regex("(\\d+)\\s*dk")
-                val match = durationRegex.find(it)
-                match?.groupValues?.get(1)?.toIntOrNull()
-            }
+            val rating = document.selectFirst("span.rating, span.rate, .imdb-score")?.text()?.toRatingInt()
+            val duration = extractDurationFromPage(document)
             
             // Kategori bilgilerini bul
-            val tags = document.select("div.genres a, ul.subnav li a, div.series-info, div.content_data span").map { it.text().trim() }
+            val tags = document.select("div.genres a, ul.subnav li a, div.series-info, div.content_data span, .genres span").map { 
+                it.text().trim() 
+            }.filter { it.isNotBlank() }
             Log.d(this@Dizifun.name, "Found tags: $tags")
             
             // Oyuncuları bul
-            val actors = document.select("div.actors-container div.actor-card, div.oyuncular span").mapNotNull {
+            val actors = document.select("div.actors-container div.actor-card, div.oyuncular span, .cast div, .actor").mapNotNull {
                 val actorName = it.selectFirst("span.actor-name")?.text()?.trim() 
+                    ?: it.selectFirst("span.name")?.text()?.trim()
                     ?: it.text().trim()
                     ?: return@mapNotNull null
                     
@@ -443,382 +324,214 @@ class Dizifun : MainAPI() {
             Log.d(this@Dizifun.name, "Found ${actors.size} actors")
             
             // Fragmanı bul
-            val trailer = document.selectFirst("iframe[src*=youtube], a.trailer-button")?.attr("src")?.let { fixUrl(it) }
+            val trailer = document.selectFirst("iframe[src*=youtube], a.trailer-button, [data-trailer]")?.let {
+                val trailerUrl = it.attr("src").takeIf { s -> s.isNotBlank() } 
+                    ?: it.attr("data-trailer").takeIf { s -> s.isNotBlank() } 
+                    ?: it.attr("href").takeIf { s -> s.isNotBlank() }
+                trailerUrl?.let { url -> fixUrl(url) }
+            }
             Log.d(this@Dizifun.name, "Found trailer: $trailer")
 
-            // Bölümleri bul (dizi ise)
-            val episodes = if (type == TvType.TvSeries) {
-                val allEpisodes = ArrayList<Episode>()
-                
-                // Season/Tab kutularını bul - Önce sezon seçimini bul
-                val seasonSelectors = document.select("div.sezon-select, div.season-select, select.season-change, div.seasons-bk")
-                Log.d(this@Dizifun.name, "Sezon seçicileri: ${seasonSelectors.size}")
-                
-                // Sezon seçicileri bulundu mu?
-                if (seasonSelectors.isNotEmpty()) {
-                    Log.d(this@Dizifun.name, "Sezon seçicileri bulundu.")
-                    
-                    // Sezon butonlarını/dropdown seçeneklerini bul
-                    val seasonButtons = seasonSelectors.select("a, option, button, span").filter { it.text().contains("Sezon", ignoreCase = true) || it.text().matches(Regex("S\\d+", RegexOption.IGNORE_CASE)) }
-                    Log.d(this@Dizifun.name, "Sezon butonları: ${seasonButtons.size}")
-                    
-                    seasonButtons.forEachIndexed { index, seasonButton ->
-                        val seasonText = seasonButton.text().trim()
-                        // Sezon numarasını çıkar
-                        val seasonId = seasonText.replace(Regex("[^0-9]"), "").toIntOrNull() ?: (index + 1)
-                        Log.d(this@Dizifun.name, "İşleniyor: $seasonText (Sezon $seasonId)")
-                        
-                        // Her sezon düğmesine ait bölüm listesini bul
-                        val seasonContent = seasonButton.attr("href").takeIf { it.isNotBlank() }?.let {
-                            // Eğer butonda href varsa, muhtemelen ayrı bir sayfa
-                            val seasonUrl = if (it.startsWith("http")) it else fixUrlNull(it)
-                            val seasonDoc = app.get(seasonUrl!!, headers = defaultHeaders).document
-                            seasonDoc.select("a[href*=bolum], a.episode-button, div.episode-button, a[href*=izle], li.episode a, a.btn-episode, a.dizi-parts")
-                        } ?: document.select("div[id=season$seasonId], div[id=sezon$seasonId], div.seasonContent$seasonId, div.tabcontent$seasonId").select("a[href*=bolum], a.episode-button, div.episode-button, a[href*=izle], li.episode a, a.btn-episode, a.dizi-parts")
-                        
-                        if (seasonContent.isEmpty()) {
-                            // Dizifun2 sitesi için özel seçici - Sezon butonları basit tıklama/toggle düğmeleridir
-                            val allEpisodeLinks = document.select("a[href*=bolum], a.episode-button, a[href*=izle], li.episode a, a.btn-episode, a.dizi-parts").filter {
-                                // Basit metin filtreleme - sadece o sezona ait bölümleri bul
-                                val episodeNum = it.text().replace(Regex("[^0-9]"), "").toIntOrNull() ?: 0
-                                val isBelongingToSeason = when {
-                                    it.hasAttr("data-season") -> it.attr("data-season").equals(seasonId.toString())
-                                    it.parent()?.hasAttr("data-season") == true -> it.parent()?.attr("data-season").equals(seasonId.toString())
-                                    it.hasClass("season-$seasonId") || it.parent()?.hasClass("season-$seasonId") == true -> true
-                                    // Sayfa yapısına göre her buton için sezon tahmin et
-                                    else -> true
-                                }
-                                isBelongingToSeason
-                            }
-                            
-                            Log.d(this@Dizifun.name, "Sezon $seasonId için alternatif bölüm bulundu: ${allEpisodeLinks.size}")
-                            
-                            allEpisodeLinks.forEach { episodeElement ->
-                                val name = episodeElement.text().trim()
-                                val href = episodeElement.attr("href")
-                                
-                                Log.d(this@Dizifun.name, "Bölüm elementi: name=$name, href=$href")
-                                
-                                // Bölüm numarasını extract et
-                                val episodeNum = when {
-                                    name.contains("Bölüm", ignoreCase = true) -> {
-                                        val lowerName = name.lowercase()
-                                        val numText = lowerName.substringAfter("bölüm").trim()
-                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                    }
-                                    name.contains("Bölum", ignoreCase = true) -> {
-                                        val lowerName = name.lowercase()
-                                        val numText = lowerName.substringAfter("bölum").trim()
-                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                    }
-                                    name.contains("Bolum", ignoreCase = true) -> {
-                                        val lowerName = name.lowercase()
-                                        val numText = lowerName.substringAfter("bolum").trim()
-                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                    }
-                                    name.contains("Episode", ignoreCase = true) -> {
-                                        val lowerName = name.lowercase()
-                                        val numText = lowerName.substringAfter("episode").trim()
-                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                    }
-                                    name.contains("B.", ignoreCase = true) -> {
-                                        val lowerName = name.lowercase()
-                                        val numText = lowerName.substringAfter("b.").trim()
-                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                    }
-                                    name.matches(Regex(".*\\d+.*", RegexOption.IGNORE_CASE)) -> {
-                                        name.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                    }
-                                    else -> 1 // Bölüm numarası bulunamazsa 1 atanır
-                                }
-                                
-                                Log.d(this@Dizifun.name, "Extracted episode number: $episodeNum")
-                                
-                                // URL'yi fix
-                                val data = if (href.isNotBlank()) {
-                                    fixUrlNull(href)
-                                } else {
-                                    null
-                                }
-                                
-                                if (data == null) {
-                                    Log.d(this@Dizifun.name, "Skipping episode with invalid URL")
-                                    return@forEach
-                                }
-                                
-                                val fullUrl = if (data.startsWith("?") || data.startsWith("/")) {
-                                    if (data.startsWith("?")) data else mainUrl + data
-                                } else {
-                                    data
-                                }
-                                
-                                Log.d(this@Dizifun.name, "Adding episode: name=$name, season=$seasonId, episode=$episodeNum, url=$fullUrl")
-                                
-                                allEpisodes.add(
-                                    newEpisode(fullUrl) {
-                                        this.name = name
-                                        this.season = seasonId
-                                        this.episode = episodeNum ?: 1
-                                    }
-                                )
-                            }
-                        } else {
-                            Log.d(this@Dizifun.name, "Sezon $seasonId için bölüm bulundu: ${seasonContent.size}")
-                            
-                            seasonContent.forEach { episodeElement ->
-                                val name = episodeElement.text().trim()
-                                val href = episodeElement.attr("href")
-                                
-                                // Boş bölüm isimleri veya linkler için atla
-                                if (name.isBlank() || href.isBlank()) return@forEach
-                                
-                                Log.d(this@Dizifun.name, "Bölüm elementi: name=$name, href=$href")
-                                
-                                // Bölüm numarasını extract et
-                                val episodeNum = when {
-                                    name.contains("Bölüm", ignoreCase = true) -> {
-                                        val lowerName = name.lowercase()
-                                        val numText = lowerName.substringAfter("bölüm").trim()
-                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                    }
-                                    name.contains("Bölum", ignoreCase = true) -> {
-                                        val lowerName = name.lowercase()
-                                        val numText = lowerName.substringAfter("bölum").trim()
-                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                    }
-                                    name.contains("Bolum", ignoreCase = true) -> {
-                                        val lowerName = name.lowercase()
-                                        val numText = lowerName.substringAfter("bolum").trim()
-                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                    }
-                                    name.contains("Episode", ignoreCase = true) -> {
-                                        val lowerName = name.lowercase()
-                                        val numText = lowerName.substringAfter("episode").trim()
-                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                    }
-                                    name.contains("B.", ignoreCase = true) -> {
-                                        val lowerName = name.lowercase()
-                                        val numText = lowerName.substringAfter("b.").trim()
-                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                    }
-                                    name.matches(Regex(".*\\d+.*", RegexOption.IGNORE_CASE)) -> {
-                                        name.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                    }
-                                    href.contains("bolum", ignoreCase = true) || href.contains("episode", ignoreCase = true) -> {
-                                        val episodeRegex = Regex("(?:bolum|episode)[\\s-]*([0-9]+)", RegexOption.IGNORE_CASE)
-                                        val matchResult = episodeRegex.find(href)
-                                        matchResult?.groupValues?.get(1)?.toIntOrNull()
-                                    }
-                                    else -> 1 // Bölüm numarası bulunamazsa 1 atanır
-                                }
-                                
-                                Log.d(this@Dizifun.name, "Extracted episode number: $episodeNum")
-                                
-                                // URL'yi fix
-                                val data = fixUrlNull(href)
-                                if (data != null) {
-                                    val fullUrl = if (data.startsWith("?") || data.startsWith("/")) {
-                                        if (data.startsWith("?")) data else mainUrl + data
-                                    } else {
-                                        data
-                                    }
-                                    
-                                    Log.d(this@Dizifun.name, "Adding alternative episode: name=$name, season=$seasonId, episode=$episodeNum, url=$fullUrl")
-                                    
-                                    allEpisodes.add(
-                                        newEpisode(fullUrl) {
-                                            this.name = name
-                                            this.season = seasonId
-                                            this.episode = episodeNum ?: 1
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    // Sezon seçicileri bulunamadı, alternatif yöntem dene
-                    // Dizifun2 için özel yöntem - içerikteki 1.Sezon, 2.Sezon gibi metinleri bul
-                    val seasonTexts = document.select("div.seasons-bk, div.bolumler, div.episodelist, div.season-list")
-                    Log.d(this@Dizifun.name, "Alternatif sezon alanları: ${seasonTexts.size}")
-                    
-                    // Eğer sezonlar serbest metinler olarak mevcut ise (örn: 1.Sezon 2.Sezon gibi butonlar)
-                    val seasonButtons = document.select("a, button, span").filter { it.text().contains("Sezon", ignoreCase = true) || it.text().matches(Regex("S\\d+", RegexOption.IGNORE_CASE)) }
-                    
-                    if (seasonButtons.isNotEmpty()) {
-                        Log.d(this@Dizifun.name, "Alternatif sezon butonları: ${seasonButtons.size}")
-                        
-                        seasonButtons.forEachIndexed { index, seasonButton ->
-                            val seasonText = seasonButton.text().trim()
-                            // Sezon numarasını çıkar
-                            val seasonId = seasonText.replace(Regex("[^0-9]"), "").toIntOrNull() ?: (index + 1)
-                            Log.d(this@Dizifun.name, "İşleniyor: $seasonText (Sezon $seasonId)")
-                            
-                            // Dizifun2 sitesinde bölümler genellikle bir listede düz olarak sunulur
-                            // Her sezon butonuna tıklandığında JS ile gösterilir/gizlenir
-                            // Tüm bölümleri topla ve sezon numarasını tahmin et
-                            
-                            // Tüm bölüm butonlarını bul
-                            val episodeLinks = document.select("a, button, span").filter { 
-                                (it.text().contains("Bölüm", ignoreCase = true) || 
-                                 it.text().contains("Bolum", ignoreCase = true) || 
-                                 it.text().matches(Regex("E\\d+", RegexOption.IGNORE_CASE))) &&
-                                it.hasAttr("href")
-                            }
-                            
-                            // Basit tahmin: İlk sezonun bölümleri 1-25, ikinci sezonun 26-50 gibi
-                            val currentSeasonEpisodes = if (seasonButtons.size > 1) {
-                                val episodesPerSeason = episodeLinks.size / seasonButtons.size
-                                val start = index * episodesPerSeason
-                                val end = if (index == seasonButtons.size - 1) episodeLinks.size else (index + 1) * episodesPerSeason
-                                episodeLinks.subList(start, end)
-                            } else {
-                                episodeLinks
-                            }
-                            
-                            Log.d(this@Dizifun.name, "Sezon $seasonId için tahmini bölüm sayısı: ${currentSeasonEpisodes.size}")
-                            
-                            currentSeasonEpisodes.forEach { episodeElement ->
-                                val name = episodeElement.text().trim()
-                                val href = episodeElement.attr("href")
-                                
-                                if (name.isBlank() || href.isBlank()) return@forEach
-                                
-                                // Bölüm numarasını extract et
-                                val episodeNum = when {
-                                    name.contains("Bölüm", ignoreCase = true) -> {
-                                        val lowerName = name.lowercase()
-                                        val numText = lowerName.substringAfter("bölüm").trim()
-                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                    }
-                                    name.contains("Bolum", ignoreCase = true) -> {
-                                        val lowerName = name.lowercase()
-                                        val numText = lowerName.substringAfter("bolum").trim()
-                                        numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                    }
-                                    name.matches(Regex(".*\\d+.*", RegexOption.IGNORE_CASE)) -> {
-                                        name.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                    }
-                                    else -> 1 // Bölüm numarası bulunamazsa 1 atanır
-                                }
-                                
-                                // URL'yi fix
-                                val data = fixUrlNull(href)
-                                if (data != null) {
-                                    val fullUrl = if (data.startsWith("?") || data.startsWith("/")) {
-                                        if (data.startsWith("?")) data else mainUrl + data
-                                    } else {
-                                        data
-                                    }
-                                    
-                                    Log.d(this@Dizifun.name, "Tahmin edilen bölüm ekleniyor: name=$name, season=$seasonId, episode=$episodeNum, url=$fullUrl")
-                                    
-                                    allEpisodes.add(
-                                        newEpisode(fullUrl) {
-                                            this.name = name
-                                            this.season = seasonId
-                                            this.episode = episodeNum ?: 1
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    } else {
-                        // Hiçbir sezon belirteci bulunamadı, tüm bölümleri tek sezon olarak işle
-                        Log.d(this@Dizifun.name, "Sezon belirteci bulunamadı, tüm bölümler tek sezon olarak işleniyor")
-                        
-                        val episodeElements = document.select("a[href*=bolum], a[href*=izle], a.episode-button, div.episode-button, li.episode a, a.btn-episode, a.dizi-parts")
-                        Log.d(this@Dizifun.name, "Toplam bölüm sayısı: ${episodeElements.size}")
-                        
-                        episodeElements.forEach { episodeElement ->
-                            val name = episodeElement.text().trim()
-                            val href = episodeElement.attr("href")
-                            
-                            if (name.isBlank() || href.isBlank()) return@forEach
-                            
-                            // Bölüm numarasını extract et
-                            val episodeNum = when {
-                                name.contains("Bölüm", ignoreCase = true) -> {
-                                    val lowerName = name.lowercase()
-                                    val numText = lowerName.substringAfter("bölüm").trim()
-                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                }
-                                name.contains("Bolum", ignoreCase = true) -> {
-                                    val lowerName = name.lowercase()
-                                    val numText = lowerName.substringAfter("bolum").trim()
-                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                }
-                                name.matches(Regex(".*\\d+.*", RegexOption.IGNORE_CASE)) -> {
-                                    name.replace(Regex("[^0-9]"), "").toIntOrNull()
-                                }
-                                else -> 1 // Bölüm numarası bulunamazsa 1 atanır
-                            }
-                            
-                            // URL'yi fix
-                            val data = fixUrlNull(href)
-                            if (data != null) {
-                                val fullUrl = if (data.startsWith("?") || data.startsWith("/")) {
-                                    if (data.startsWith("?")) data else mainUrl + data
-                                } else {
-                                    data
-                                }
-                                
-                                Log.d(this@Dizifun.name, "Tek sezon bölüm ekleniyor: name=$name, season=1, episode=$episodeNum, url=$fullUrl")
-                                
-                                allEpisodes.add(
-                                    newEpisode(fullUrl) {
-                                        this.name = name
-                                        this.season = 1
-                                        this.episode = episodeNum ?: 1
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    
-                    // Eğer hala bölüm bulunamadıysa, bu içerik tek bölümlük bir dizi/film olabilir
-                    if (allEpisodes.isEmpty()) {
-                        Log.d(this@Dizifun.name, "No episodes found, treating as a single episode")
-                        allEpisodes.add(
-                            newEpisode(url) {
-                                this.name = title
-                                this.season = 1
-                                this.episode = 1
-                            }
-                        )
-                    }
-                    
-                    Log.d(this@Dizifun.name, "Total episodes found: ${allEpisodes.size}")
-                    allEpisodes
-                } else null
-
+            // Dizi ise bölümleri bulalım, film ise doğrudan yükleyelim
             return if (type == TvType.TvSeries) {
-                newTvSeriesLoadResponse(title, url, type, episodes ?: emptyList()) {
+                val episodes = ArrayList<Episode>()
+                
+                // Sezon ve bölüm yapısını analiz et
+                extractEpisodes(document, url, episodes)
+                
+                Log.d(this@Dizifun.name, "Total episodes found: ${episodes.size}")
+                
+                newTvSeriesLoadResponse(title, url, type, episodes) {
                     this.posterUrl = poster
                     this.year = year
                     this.plot = description
+                    this.tags = tags
                     this.rating = rating
                     this.duration = duration
-                    this.tags = tags
                     addActors(actors)
-                    addTrailer(trailer)
+                    if (trailer != null) addTrailer(trailer)
                 }
             } else {
                 newMovieLoadResponse(title, url, type, url) {
                     this.posterUrl = poster
                     this.year = year
                     this.plot = description
+                    this.tags = tags
                     this.rating = rating
                     this.duration = duration
-                    this.tags = tags
                     addActors(actors)
-                    addTrailer(trailer)
+                    if (trailer != null) addTrailer(trailer)
                 }
             }
         } catch (e: Exception) {
-            Log.e(this@Dizifun.name, "Video detayları yüklenirken hata: ${e.message}")
-            e.printStackTrace()
+            Log.e(this@Dizifun.name, "Error loading detail page: ${e.message}")
             return null
+        }
+    }
+    
+    // Detay sayfasından poster çıkarma
+    private fun extractPosterFromPage(document: Document): String? {
+        return document.selectFirst("div.media-cover img, img.imgboyut, img.responsive-img, div.platformmobile img, .poster img, .thumbnail img")?.attr("src")
+            ?.takeIf { !it.startsWith("data:") }
+            ?.let { fixUrlNull(it) }
+    }
+    
+    // Detay sayfasından yıl çıkarma
+    private fun extractYearFromPage(document: Document): Int? {
+        val yearText = document.select("ul.subnav li, div.content_data, .series-info, .movie-info").find { 
+            it.text().contains("Yıl:") || it.text().contains("Dizi Yılı:") || it.text().contains("Film Yılı:") 
+        }?.text() ?: ""
+        
+        return yearText.substringAfter("Yıl:").substringAfter("Dizi Yılı:").substringAfter("Film Yılı:").trim().toIntOrNull()
+            ?: Regex("\\b(\\d{4})\\b").find(document.text())?.groupValues?.get(1)?.toIntOrNull()
+    }
+    
+    // Detay sayfasından açıklama çıkarma
+    private fun extractDescriptionFromPage(document: Document): String? {
+        return document.selectFirst("p.text-muted, div.descmobi, div.content_data > p, .description, .plot")?.text()?.trim()
+            ?: document.select("div.content_data, div.detail-text, div.description").firstOrNull()?.text()?.trim()
+    }
+    
+    // Detay sayfasından süre çıkarma
+    private fun extractDurationFromPage(document: Document): Int? {
+        val durationText = document.select("span.runtime, div.content_data, .duration, .info").text()
+        val durationRegex = Regex("(\\d+)\\s*(?:dk|min)")
+        return durationRegex.find(durationText)?.groupValues?.get(1)?.toIntOrNull()
+    }
+    
+    // Bölümleri çıkarma
+    private suspend fun extractEpisodes(document: Document, url: String, episodes: ArrayList<Episode>) {
+        // 1. Sezon seçicileri bulma
+        val seasonSelectors = document.select("div.sezon-select, div.season-select, select.season-change, div.seasons-bk, .seasons, .season-buttons")
+        Log.d(this@Dizifun.name, "Sezon seçicileri: ${seasonSelectors.size}")
+        
+        // 2. Sezon butonları var mı?
+        if (seasonSelectors.isNotEmpty()) {
+            Log.d(this@Dizifun.name, "Sezon seçicileri bulundu")
+            
+            // Sezon butonlarını/dropdown seçeneklerini bul
+            val seasonButtons = seasonSelectors.select("a, option, button, span, li").filter { 
+                it.text().contains("Sezon", ignoreCase = true) || 
+                it.text().matches(Regex("S\\d+", RegexOption.IGNORE_CASE)) ||
+                it.attr("data-season").isNotBlank()
+            }
+            
+            Log.d(this@Dizifun.name, "Sezon butonları: ${seasonButtons.size}")
+            
+            if (seasonButtons.isNotEmpty()) {
+                // Her bir sezon için bölümleri işle
+                seasonButtons.forEachIndexed { index, seasonButton ->
+                    val seasonText = seasonButton.text().trim()
+                    // Sezon numarasını çıkar
+                    val seasonId = seasonButton.attr("data-season").toIntOrNull()
+                        ?: seasonText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                        ?: (index + 1)
+                    
+                    Log.d(this@Dizifun.name, "İşleniyor: $seasonText (Sezon $seasonId)")
+                    
+                    // Her sezon düğmesine ait bölüm listesini bul
+                    var seasonEpisodes = ArrayList<Element>()
+                    
+                    // Sezon butonunda URL varsa, o sayfayı yükle
+                    val seasonHref = seasonButton.attr("href").takeIf { it.isNotBlank() }
+                    if (seasonHref != null && !seasonHref.startsWith("#")) {
+                        val seasonUrl = if (seasonHref.startsWith("http")) seasonHref else fixUrl(seasonHref)
+                        val seasonDoc = app.get(seasonUrl, headers = defaultHeaders).document
+                        seasonEpisodes = ArrayList(seasonDoc.select("a[href*=bolum], a.episode-button, div.episode-button, a[href*=izle], li.episode a, a.btn-episode, a.dizi-parts"))
+                    } else {
+                        // Buton ID veya data-target attribute içeriyor mu?
+                        val targetId = seasonButton.attr("data-target").takeIf { it.isNotBlank() }
+                            ?: seasonButton.attr("href").takeIf { it.startsWith("#") }
+                        
+                        if (targetId != null) {
+                            // Target ID ile eşleşen konteyneri bul
+                            val targetSelector = targetId.removePrefix("#")
+                            seasonEpisodes = ArrayList(document.select("$targetSelector a[href*=bolum], $targetSelector a.episode-button, $targetSelector a[href*=izle]"))
+                        }
+                        
+                        // Hala bulunamadıysa, genel sezon ID'sine göre bul
+                        if (seasonEpisodes.isEmpty()) {
+                            seasonEpisodes = ArrayList(document.select("div[id=season$seasonId], div[id=sezon$seasonId], div.seasonContent$seasonId, div.tabcontent$seasonId, .season-$seasonId")
+                                .select("a[href*=bolum], a.episode-button, a[href*=izle], li.episode a, a.btn-episode, a.dizi-parts"))
+                        }
+                        
+                        // Yine de bulunamadıysa, bölümlerde data-season attribute'unu kontrol et
+                        if (seasonEpisodes.isEmpty()) {
+                            seasonEpisodes = ArrayList(document.select("a[href*=bolum], a.episode-button, a[href*=izle]").filter {
+                                it.attr("data-season") == seasonId.toString() || 
+                                it.parent()?.attr("data-season") == seasonId.toString() ||
+                                it.hasClass("season-$seasonId") || 
+                                it.parent()?.hasClass("season-$seasonId") == true
+                            })
+                        }
+                    }
+                    
+                    Log.d(this@Dizifun.name, "Sezon $seasonId için ${seasonEpisodes.size} bölüm bulundu")
+                    
+                    // Bulunan bölümleri işle
+                    seasonEpisodes.forEachIndexed { episodeIndex, episodeElement ->
+                        val episodeName = episodeElement.text().trim()
+                        val episodeHref = fixUrl(episodeElement.attr("href"))
+                        
+                        // Bölüm numarasını belirle
+                        val episodeNumber = episodeElement.attr("data-episode").toIntOrNull()
+                            ?: episodeName.replace(Regex("[^0-9]"), "").toIntOrNull()
+                            ?: (episodeIndex + 1)
+                        
+                        episodes.add(
+                            Episode(
+                                episodeHref,
+                                episodeName,
+                                seasonId,
+                                episodeNumber
+                            )
+                        )
+                    }
+                }
+            } else {
+                // Sezon butonları bulunamadıysa, tüm bölümleri yakala ve varsayılan sezon 1 olarak işaretle
+                fallbackEpisodeExtraction(document, url, episodes)
+            }
+        } else {
+            // Sezon seçicileri bulunamadıysa, tüm bölümleri yakala ve varsayılan sezon 1 olarak işaretle
+            fallbackEpisodeExtraction(document, url, episodes)
+        }
+    }
+    
+    // Varsayılan bölüm çıkarma - sezon bilgisi olmadığında
+    private fun fallbackEpisodeExtraction(document: Document, url: String, episodes: ArrayList<Episode>) {
+        Log.d(this@Dizifun.name, "Fallback bölüm çıkarma yöntemi kullanılıyor")
+        
+        val allEpisodeLinks = document.select("a[href*=bolum], a.episode-button, a[href*=izle], li.episode a, a.btn-episode, a.dizi-parts")
+        Log.d(this@Dizifun.name, "Toplam ${allEpisodeLinks.size} bölüm linki bulundu")
+        
+        allEpisodeLinks.forEachIndexed { index, episodeElement ->
+            val name = episodeElement.text().trim()
+            val href = fixUrl(episodeElement.attr("href"))
+            
+            // Bölüm adından sezon ve bölüm numaralarını çıkarmaya çalış
+            val seasonEpisodeMatch = Regex("S(\\d+)(?:E|B)(\\d+)", RegexOption.IGNORE_CASE).find(name)
+                ?: Regex("(\\d+)[.\\s]*Sezon[.\\s]*(\\d+)[.\\s]*Bölüm", RegexOption.IGNORE_CASE).find(name)
+            
+            val (seasonNumber, episodeNumber) = if (seasonEpisodeMatch != null) {
+                val sNum = seasonEpisodeMatch.groupValues[1].toIntOrNull() ?: 1
+                val eNum = seasonEpisodeMatch.groupValues[2].toIntOrNull() ?: (index + 1)
+                Pair(sNum, eNum)
+            } else {
+                // Bölüm adından sadece bölüm numarasını çıkarmaya çalış
+                val episodeMatch = Regex("(\\d+)[.\\s]*Bölüm", RegexOption.IGNORE_CASE).find(name)
+                val eNum = episodeMatch?.groupValues?.get(1)?.toIntOrNull() ?: (index + 1)
+                Pair(1, eNum)  // Varsayılan olarak sezon 1
+            }
+            
+            episodes.add(
+                Episode(
+                    href,
+                    name,
+                    seasonNumber,
+                    episodeNumber
+                )
+            )
         }
     }
 
@@ -838,232 +551,458 @@ class Dizifun : MainAPI() {
             )).document
             
             // İframe kaynağını bul
-            val rawIframeSrc = doc.select("iframe").attr("src")
-            if (rawIframeSrc.isNotEmpty()) {
-                // İframe src'yi kontrol et ve gerekirse decode et
-                val iframeSrc = checkAndDecodeIframeSrc(rawIframeSrc)
-                val normalizedIframeSrc = normalizeUrl(iframeSrc)
-                Log.d(this@Dizifun.name, "İframe kaynağı bulundu: $normalizedIframeSrc")
+            val iframes = doc.select("iframe")
+            Log.d(this@Dizifun.name, "Bulunan iframe sayısı: ${iframes.size}")
+            
+            if (iframes.isNotEmpty()) {
+                var videoFound = false
                 
-                // İframe kaynağı ile ilgili detaylı bilgileri logla
-                logSourceInfo(normalizedIframeSrc)
+                for (iframe in iframes) {
+                    val rawIframeSrc = iframe.attr("src")
+                    if (rawIframeSrc.isNotBlank()) {
+                        // İframe src'yi kontrol et ve gerekirse decode et
+                        val iframeSrc = checkAndDecodeIframeSrc(rawIframeSrc)
+                        val normalizedIframeSrc = normalizeUrl(iframeSrc)
+                        Log.d(this@Dizifun.name, "İframe kaynağı işleniyor: $normalizedIframeSrc")
+                        
+                        try {
+                            val iframeDoc = app.get(
+                                normalizedIframeSrc,
+                                headers = mapOf(
+                                    "User-Agent" to USER_AGENT,
+                                    "Referer" to url
+                                )
+                            ).text
+                            
+                            // JavaScript'ten hex-encoded URL'leri bul
+                            val hexUrls = findHexEncodedUrls(iframeDoc)
+                            
+                            // JavaScript'ten direkt URL'leri bul (hex olmayan)
+                            val directUrls = findDirectUrls(iframeDoc)
+                            
+                            // Tüm URL'leri birleştir
+                            val allUrls = (hexUrls + directUrls).distinct()
+                            
+                            if (allUrls.isNotEmpty()) {
+                                Log.d(this@Dizifun.name, "${allUrls.size} video URL'si bulundu")
+                                videoFound = true
+                                
+                                allUrls.forEach { videoUrl ->
+                                    val normalizedVideoUrl = normalizeUrl(videoUrl)
+                                    
+                                    // Video kalitesini belirle
+                                    val quality = when {
+                                        normalizedVideoUrl.contains("1080") -> Qualities.P1080.value
+                                        normalizedVideoUrl.contains("720") -> Qualities.P720.value
+                                        normalizedVideoUrl.contains("480") -> Qualities.P480.value
+                                        else -> Qualities.P360.value
+                                    }
+                                    
+                                    // Video kaynağını belirle
+                                    val sourceName = when {
+                                        normalizedVideoUrl.contains("dizifun") -> "Dizifun"
+                                        normalizedVideoUrl.contains("youtube") || normalizedVideoUrl.contains("youtu.be") -> "YouTube"
+                                        normalizedVideoUrl.contains("vimeo") -> "Vimeo"
+                                        normalizedVideoUrl.contains("googlevideo") -> "Google"
+                                        normalizedVideoUrl.contains("dailymotion") || normalizedVideoUrl.contains("dai.ly") -> "Dailymotion"
+                                        normalizedVideoUrl.contains("cloudfront") -> "CloudFront"
+                                        normalizedVideoUrl.contains("amazonaws") -> "AWS"
+                                        else -> "Direct"
+                                    }
+                                    
+                                    // HLS stream kontrolü
+                                    val isHLS = normalizedVideoUrl.contains(".m3u8")
+                                    
+                                    callback.invoke(
+                                        ExtractorLink(
+                                            this@Dizifun.name,
+                                            if (isHLS) "${sourceName} HLS" else sourceName,
+                                            normalizedVideoUrl,
+                                            normalizedIframeSrc,
+                                            quality,
+                                            isHLS
+                                        )
+                                    )
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e(this@Dizifun.name, "İframe işlenirken hata: ${e.message}")
+                        }
+                    }
+                }
                 
+                // Video bulunamadıysa, tüm alternatif methodları dene
+                if (!videoFound) {
+                    Log.d(this@Dizifun.name, "İframe içinde video bulunamadı, alternatif yöntemler deneniyor...")
+                    extractAlternativeVideoSources(doc, url, callback, subtitleCallback)
+                }
+            } else {
+                Log.d(this@Dizifun.name, "Iframe bulunamadı, alternatif yöntemler deneniyor...")
+                extractAlternativeVideoSources(doc, url, callback, subtitleCallback)
+            }
+            
+            // Altyazıları bul
+            doc.select("track").forEach { track ->
+                val subLabel = track.attr("label").ifEmpty { "Türkçe" }
+                val subLang = track.attr("srclang").ifEmpty { "tr" }
+                val subUrl = track.attr("src")
+                
+                if (subUrl.isNotBlank()) {
+                    val normalizedSubUrl = normalizeUrl(subUrl)
+                    Log.d(this@Dizifun.name, "Altyazı bulundu: $subLabel - $normalizedSubUrl")
+                    subtitleCallback.invoke(
+                        SubtitleFile(
+                            subLang,
+                            normalizedSubUrl
+                        )
+                    )
+                }
+            }
+            
+            return true
+        } catch (e: Exception) {
+            Log.e(this@Dizifun.name, "Video linkleri yüklenirken hata: ${e.message}")
+            return false
+        }
+    }
+    
+    // Alternatif video kaynaklarını çıkar
+    private suspend fun extractAlternativeVideoSources(
+        doc: Document,
+        url: String,
+        callback: (ExtractorLink) -> Unit,
+        subtitleCallback: (SubtitleFile) -> Unit
+    ) {
+        // 1. Doğrudan video tag'lerini kontrol et
+        val videoTags = doc.select("video")
+        videoTags.forEach { video ->
+            // Video kaynaklarını bul
+            val sources = video.select("source")
+            sources.forEach { source ->
+                val sourceUrl = source.attr("src")
+                if (sourceUrl.isNotBlank()) {
+                    val normalizedSourceUrl = normalizeUrl(sourceUrl)
+                    val type = source.attr("type")
+                    val isHLS = normalizedSourceUrl.contains(".m3u8") || type.contains("application/x-mpegURL")
+                    
+                    callback.invoke(
+                        ExtractorLink(
+                            this@Dizifun.name,
+                            "Direct (Video Tag)",
+                            normalizedSourceUrl,
+                            url,
+                            Qualities.Unknown.value,
+                            isHLS
+                        )
+                    )
+                }
+            }
+            
+            // Doğrudan video tag'inde src varsa
+            val videoSrc = video.attr("src")
+            if (videoSrc.isNotBlank()) {
+                val normalizedVideoSrc = normalizeUrl(videoSrc)
+                val isHLS = normalizedVideoSrc.contains(".m3u8")
+                
+                callback.invoke(
+                    ExtractorLink(
+                        this@Dizifun.name,
+                        "Direct (Video Src)",
+                        normalizedVideoSrc,
+                        url,
+                        Qualities.Unknown.value,
+                        isHLS
+                    )
+                )
+            }
+        }
+        
+        // 2. Alternatif embed butonlarını kontrol et
+        val altEmbeds = doc.select("a.alter_video, a.alternate-server, a.server-button, a[data-video], button[data-video]")
+        altEmbeds.forEach { element ->
+            val embedUrl = element.attr("href").takeIf { it.isNotBlank() } 
+                ?: element.attr("data-video").takeIf { it.isNotBlank() }
+                ?: element.attr("data-src").takeIf { it.isNotBlank() }
+            
+            if (embedUrl != null) {
                 try {
-                    val iframeDoc = app.get(
-                        normalizedIframeSrc,
+                    val normalizedEmbedUrl = normalizeUrl(embedUrl)
+                    Log.d(this@Dizifun.name, "Alternatif embed işleniyor: $normalizedEmbedUrl")
+                    
+                    val embedDoc = app.get(
+                        normalizedEmbedUrl,
                         headers = mapOf(
                             "User-Agent" to USER_AGENT,
                             "Referer" to url
                         )
                     ).text
                     
-                    // JavaScript'ten hex-encoded URL'leri bul
-                    val hexUrls = findHexEncodedUrls(iframeDoc)
+                    // Hem hex-encoded hem de direkt URL'leri bul
+                    val altUrls = findHexEncodedUrls(embedDoc) + findDirectUrls(embedDoc)
                     
-                    if (hexUrls.isEmpty()) {
-                        Log.d(this@Dizifun.name, "Hex-encoded URL bulunamadı, alternatif arama yöntemleri deneniyor...")
-                        
-                        // Doğrudan video tag'ı ara
-                        val videoSources = doc.select("video source").map { it.attr("src") }
-                        if (videoSources.isNotEmpty()) {
-                            Log.d(this@Dizifun.name, "Video kaynak tag'ları bulundu: ${videoSources.size}")
-                            videoSources.forEach { sourceUrl ->
-                                val normalizedSourceUrl = normalizeUrl(sourceUrl)
-                                callback.invoke(
-                                    ExtractorLink(
-                                        this@Dizifun.name,
-                                        "Direct (Video Tag)",
-                                        normalizedSourceUrl,
-                                        url,
-                                        Qualities.Unknown.value,
-                                        normalizedSourceUrl.contains(".m3u8")
-                                    )
-                                )
-                            }
-                        }
-                    } else {
-                        Log.d(this@Dizifun.name, "${hexUrls.size} hex-encoded URL bulundu")
-                    }
-                    
-                    // Bulunan URL'leri işle
-                    hexUrls.forEach { videoUrl ->
-                        val normalizedVideoUrl = normalizeUrl(videoUrl)
-                        Log.d(this@Dizifun.name, "Bulunan video URL'si: $normalizedVideoUrl")
-                        
+                    altUrls.distinct().forEach { videoUrl ->
+                        val normalizedAltVideoUrl = normalizeUrl(videoUrl)
                         // Video kalitesini belirle
                         val quality = when {
-                            normalizedVideoUrl.contains("1080") -> Qualities.P1080.value
-                            normalizedVideoUrl.contains("720") -> Qualities.P720.value
-                            normalizedVideoUrl.contains("480") -> Qualities.P480.value
+                            normalizedAltVideoUrl.contains("1080") -> Qualities.P1080.value
+                            normalizedAltVideoUrl.contains("720") -> Qualities.P720.value
+                            normalizedAltVideoUrl.contains("480") -> Qualities.P480.value
                             else -> Qualities.P360.value
                         }
                         
                         // Video kaynağını belirle
                         val sourceName = when {
-                            normalizedVideoUrl.contains("dizifun") -> "Dizifun"
-                            normalizedVideoUrl.contains("youtube") || normalizedVideoUrl.contains("youtu.be") -> "YouTube"
-                            normalizedVideoUrl.contains("vimeo") -> "Vimeo"
-                            normalizedVideoUrl.contains("googlevideo") -> "Google"
-                            normalizedVideoUrl.contains("dailymotion") || normalizedVideoUrl.contains("dai.ly") -> "Dailymotion"
-                            else -> "Direct"
+                            normalizedAltVideoUrl.contains("dizifun") -> "Dizifun (Alt)"
+                            normalizedAltVideoUrl.contains("youtube") || normalizedAltVideoUrl.contains("youtu.be") -> "YouTube (Alt)"
+                            normalizedAltVideoUrl.contains("vimeo") -> "Vimeo (Alt)"
+                            normalizedAltVideoUrl.contains("googlevideo") -> "Google (Alt)"
+                            normalizedAltVideoUrl.contains("dailymotion") || normalizedAltVideoUrl.contains("dai.ly") -> "Dailymotion (Alt)"
+                            else -> "Direct (Alt)"
                         }
                         
-                        // .m3u8 dosyaları için özel işlem
                         callback.invoke(
                             ExtractorLink(
                                 this@Dizifun.name,
-                                if (normalizedVideoUrl.contains(".m3u8")) "${sourceName} HLS" else sourceName,
-                                normalizedVideoUrl,
-                                normalizedIframeSrc,
+                                if (normalizedAltVideoUrl.contains(".m3u8")) "${sourceName} HLS" else sourceName,
+                                normalizedAltVideoUrl,
+                                normalizedEmbedUrl,
                                 quality,
-                                normalizedVideoUrl.contains(".m3u8")
+                                normalizedAltVideoUrl.contains(".m3u8")
                             )
                         )
-                    }
-                    
-                    // Alternatif embed URL'leri kontrol et
-                    val altEmbeds = doc.select("a.alter_video").map { it.attr("href") }
-                    if (altEmbeds.isNotEmpty()) {
-                        Log.d(this@Dizifun.name, "Alternatif embedler bulundu: ${altEmbeds.size}")
-                        altEmbeds.forEach { embedUrl ->
-                            try {
-                                val normalizedEmbedUrl = normalizeUrl(embedUrl)
-                                Log.d(this@Dizifun.name, "Alternatif embed işleniyor: $normalizedEmbedUrl")
-                                
-                                val embedDoc = app.get(
-                                    normalizedEmbedUrl,
-                                    headers = mapOf(
-                                        "User-Agent" to USER_AGENT,
-                                        "Referer" to url
-                                    )
-                                ).text
-                                
-                                val altHexUrls = findHexEncodedUrls(embedDoc)
-                                Log.d(this@Dizifun.name, "Alternatif embeddeki hex URL sayısı: ${altHexUrls.size}")
-                                
-                                altHexUrls.forEach { videoUrl ->
-                                    val normalizedAltVideoUrl = normalizeUrl(videoUrl)
-                                    // Video kalitesini belirle
-                                    val quality = when {
-                                        normalizedAltVideoUrl.contains("1080") -> Qualities.P1080.value
-                                        normalizedAltVideoUrl.contains("720") -> Qualities.P720.value
-                                        normalizedAltVideoUrl.contains("480") -> Qualities.P480.value
-                                        else -> Qualities.P360.value
-                                    }
-                                    
-                                    // Video kaynağını belirle
-                                    val sourceName = when {
-                                        normalizedAltVideoUrl.contains("dizifun") -> "Dizifun (Alt)"
-                                        normalizedAltVideoUrl.contains("youtube") || normalizedAltVideoUrl.contains("youtu.be") -> "YouTube (Alt)"
-                                        normalizedAltVideoUrl.contains("vimeo") -> "Vimeo (Alt)"
-                                        normalizedAltVideoUrl.contains("googlevideo") -> "Google (Alt)"
-                                        normalizedAltVideoUrl.contains("dailymotion") || normalizedAltVideoUrl.contains("dai.ly") -> "Dailymotion (Alt)"
-                                        else -> "Direct (Alt)"
-                                    }
-                                    
-                                    callback.invoke(
-                                        ExtractorLink(
-                                            this@Dizifun.name,
-                                            if (normalizedAltVideoUrl.contains(".m3u8")) "${sourceName} HLS" else sourceName,
-                                            normalizedAltVideoUrl,
-                                            normalizedEmbedUrl,
-                                            quality,
-                                            normalizedAltVideoUrl.contains(".m3u8")
-                                        )
-                                    )
-                                }
-                            } catch (e: Exception) {
-                                Log.e(this@Dizifun.name, "Alternatif embed yüklenirken hata: ${e.message}")
-                            }
-                        }
-                    }
-                    
-                    // Altyazıları bul
-                    doc.select("track").forEach { track ->
-                        val subLabel = track.attr("label").ifEmpty { "Türkçe" }
-                        val subLang = track.attr("srclang").ifEmpty { "tr" }
-                        val subUrl = track.attr("src")
-                        
-                        if (subUrl.isNotEmpty()) {
-                            val normalizedSubUrl = normalizeUrl(subUrl)
-                            Log.d(this@Dizifun.name, "Altyazı bulundu: $subLabel - $normalizedSubUrl")
-                            subtitleCallback.invoke(
-                                SubtitleFile(
-                                    subLang,
-                                    normalizedSubUrl
-                                )
-                            )
-                        }
                     }
                 } catch (e: Exception) {
-                    Log.e(this@Dizifun.name, "İframe içeriği işlenirken hata: ${e.message}")
+                    Log.e(this@Dizifun.name, "Alternatif embed yüklenirken hata: ${e.message}")
                 }
-            } else {
-                Log.e(this@Dizifun.name, "İframe bulunamadı, doğrudan video tag'ı aranıyor...")
+            }
+        }
+        
+        // 3. JavaScript içindeki URL'leri kontrol et
+        doc.select("script").forEach { script ->
+            val scriptContent = script.html()
+            if (scriptContent.contains("http") || scriptContent.contains(".mp4") || scriptContent.contains(".m3u8")) {
+                val scriptUrls = findDirectUrls(scriptContent)
                 
-                // Doğrudan video tag'ı ara
-                val videoSources = doc.select("video source").map { it.attr("src") }
-                if (videoSources.isNotEmpty()) {
-                    Log.d(this@Dizifun.name, "Video kaynak tag'ları bulundu: ${videoSources.size}")
-                    videoSources.forEach { sourceUrl ->
-                        val normalizedSourceUrl = normalizeUrl(sourceUrl)
-                        callback.invoke(
-                            ExtractorLink(
-                                this@Dizifun.name,
-                                "Direct (Video Tag)",
-                                normalizedSourceUrl,
-                                url,
-                                Qualities.Unknown.value,
-                                normalizedSourceUrl.contains(".m3u8")
-                            )
+                scriptUrls.forEach { scriptUrl ->
+                    val normalizedScriptUrl = normalizeUrl(scriptUrl)
+                    val isHLS = normalizedScriptUrl.contains(".m3u8")
+                    
+                    callback.invoke(
+                        ExtractorLink(
+                            this@Dizifun.name,
+                            if (isHLS) "JavaScript HLS" else "JavaScript",
+                            normalizedScriptUrl,
+                            url,
+                            Qualities.Unknown.value,
+                            isHLS
                         )
+                    )
+                }
+            }
+        }
+    }
+    
+    // JavaScript içinden direkt URL'leri bul (hex olmayan)
+    private fun findDirectUrls(html: String): List<String> {
+        val foundUrls = mutableListOf<String>()
+        
+        try {
+            // MP4 veya M3U8 URL'leri için regex
+            val urlPatterns = listOf(
+                "https?://[^\"'\\s]+\\.(?:mp4|m3u8)[^\"'\\s]*".toRegex(),  // MP4/M3U8 uzantılı URL'ler
+                "https?://[^\"'\\s]+/embed/[^\"'\\s]+".toRegex(),  // Embed URL'leri
+                "https?://[^\"'\\s]+/player/[^\"'\\s]+".toRegex(),  // Player URL'leri
+                "https?://[^\"'\\s]+/stream/[^\"'\\s]+".toRegex()   // Stream URL'leri
+            )
+            
+            urlPatterns.forEach { pattern ->
+                pattern.findAll(html).forEach { matchResult ->
+                    val url = matchResult.value
+                    // URL'yi temizle (sondaki gereksiz karakterleri kaldır)
+                    val cleanUrl = url.replace(Regex("[\"'\\s]+$"), "")
+                    foundUrls.add(cleanUrl)
+                }
+            }
+            
+            // JavaScript değişken atamalarını da kontrol et
+            val jsVariablePatterns = listOf(
+                "(?:var|let|const)\\s+\\w+\\s*=\\s*[\"']([^\"']*?(?:mp4|m3u8)[^\"']*?)[\"']".toRegex(),
+                "file\\s*:\\s*[\"']([^\"']*?(?:mp4|m3u8)[^\"']*?)[\"']".toRegex(),
+                "source\\s*:\\s*[\"']([^\"']*?(?:mp4|m3u8)[^\"']*?)[\"']".toRegex(),
+                "src\\s*:\\s*[\"']([^\"']*?(?:mp4|m3u8)[^\"']*?)[\"']".toRegex()
+            )
+            
+            jsVariablePatterns.forEach { pattern ->
+                pattern.findAll(html).forEach { matchResult ->
+                    val url = matchResult.groupValues[1]
+                    if (url.isNotBlank() && 
+                        (url.startsWith("http") || url.startsWith("//") || url.contains(".mp4") || url.contains(".m3u8"))) {
+                        foundUrls.add(url)
                     }
-                } else {
-                    Log.e(this@Dizifun.name, "Hiçbir video kaynağı bulunamadı")
                 }
             }
         } catch (e: Exception) {
-            Log.e(this@Dizifun.name, "Video linkleri yüklenirken hata: ${e.message}")
-            return false
+            Log.e(this@Dizifun.name, "Error finding direct URLs: ${e.message}")
         }
         
-        return true
+        return foundUrls.distinct()
     }
-    
-    // Hex string'i normal string'e çeviren fonksiyon
-    private fun hexToString(hexString: String): String {
-        val result = StringBuilder()
-        var i = 0
+
+    // İframe src değerinin hex-encoded olup olmadığını kontrol et ve deşifre et
+    private fun checkAndDecodeIframeSrc(iframeSrc: String): String {
+        // Boş kontrolü
+        if (iframeSrc.isBlank()) return ""
         
-        while (i < hexString.length) {
-            // Her iki karakteri bir hex değeri olarak değerlendir
-            if (i + 1 < hexString.length) {
+        // Eğer normal bir URL ise doğrudan döndür
+        if (iframeSrc.startsWith("http") || iframeSrc.startsWith("//")) {
+            return iframeSrc
+        }
+        
+        // JavaScript:something(...) formatında mı?
+        if (iframeSrc.startsWith("javascript:")) {
+            Log.d(this@Dizifun.name, "JavaScript iframe src işleniyor: $iframeSrc")
+            
+            // Hex-encoded URL içeriyor mu kontrol et
+            val hexMatches = "\\\\x[0-9a-fA-F]{2}".toRegex().findAll(iframeSrc)
+            if (hexMatches.any()) {
                 try {
-                    val hexPair = hexString.substring(i, i + 2)
-                    val decimal = hexPair.toInt(16)
-                    result.append(decimal.toChar())
-                    i += 2
-                } catch (e: NumberFormatException) {
-                    // Geçersiz hex karakteri, olduğu gibi ekle
-                    result.append(hexString[i])
-                    i++
+                    // JavaScript: kısmını çıkar
+                    val jsContent = iframeSrc.substringAfter("javascript:")
+                    // Hex encode edilmiş kısımları bul
+                    val possibleUrls = findHexEncodedUrls(jsContent)
+                    // HTTP ile başlayan ilk URL'yi döndür
+                    val httpUrl = possibleUrls.firstOrNull { it.startsWith("http") || it.startsWith("//") }
+                    if (httpUrl != null) {
+                        Log.d(this@Dizifun.name, "Javascript'ten çözülen URL: $httpUrl")
+                        return httpUrl
+                    }
+                } catch (e: Exception) {
+                    Log.e(this@Dizifun.name, "Javascript iframe src çözülemedi: ${e.message}")
                 }
-            } else {
-                // Son tek karakteri olduğu gibi ekle
-                result.append(hexString[i])
-                i++
+            }
+            
+            // Base64 encoding içeriyor mu kontrol et
+            val base64Matches = "atob\\([\"']([^\"']+)[\"']\\)".toRegex().find(iframeSrc)
+            if (base64Matches != null) {
+                try {
+                    val base64Content = base64Matches.groupValues[1]
+                    val decodedContent = base64Decode(base64Content)
+                    if (decodedContent.contains("http")) {
+                        Log.d(this@Dizifun.name, "Base64'ten çözülen URL: $decodedContent")
+                        return extractUrlFromString(decodedContent)
+                    }
+                } catch (e: Exception) {
+                    Log.e(this@Dizifun.name, "Base64 iframe src çözülemedi: ${e.message}")
+                }
+            }
+            
+            // Direkt URL içeriyor mu kontrol et
+            val directUrlMatches = "(?:document\\.write\\(['\"](https?://[^'\"]+)['\"]\\))".toRegex().find(iframeSrc)
+            if (directUrlMatches != null) {
+                val directUrl = directUrlMatches.groupValues[1]
+                if (directUrl.isNotBlank()) {
+                    Log.d(this@Dizifun.name, "JavaScript'ten direkt URL: $directUrl")
+                    return directUrl
+                }
             }
         }
         
-        return result.toString()
+        // Doğrudan hex-encoded olabilir mi?
+        if (iframeSrc.length > 20 && iframeSrc.all { it.isLetterOrDigit() }) {
+            try {
+                val decoded = hexToString(iframeSrc)
+                if (decoded.contains("http") || decoded.contains("//")) {
+                    Log.d(this@Dizifun.name, "Hex-encoded iframe src çözüldü: $decoded")
+                    return extractUrlFromString(decoded)
+                }
+            } catch (e: Exception) {
+                Log.e(this@Dizifun.name, "Hex iframe src çözülemedi: ${e.message}")
+            }
+        }
+        
+        // Base64 encoded olabilir mi?
+        if (iframeSrc.length > 20 && iframeSrc.matches(Regex("^[A-Za-z0-9+/=]+$"))) {
+            try {
+                val decoded = base64Decode(iframeSrc)
+                if (decoded.contains("http") || decoded.contains("//")) {
+                    Log.d(this@Dizifun.name, "Base64-encoded iframe src çözüldü: $decoded")
+                    return extractUrlFromString(decoded)
+                }
+            } catch (e: Exception) {
+                // Base64 değilse sessizce devam et
+            }
+        }
+        
+        // Hiçbir şey yapılamadıysa orijinal değeri döndür
+        return iframeSrc
     }
     
+    // String içinden URL'yi çıkar
+    private fun extractUrlFromString(input: String): String {
+        // Basit URL regex
+        val urlRegex = "https?://[^\\s\"'<>]+".toRegex()
+        val match = urlRegex.find(input)
+        
+        return match?.value ?: input
+    }
+
+    // URL'yi düzelt ve normalleştir
+    private fun normalizeUrl(url: String): String {
+        if (url.isBlank()) return ""
+        
+        var fixedUrl = url.trim()
+        
+        // URL'yi temizle - sondaki gereksiz karakterleri kaldır
+        fixedUrl = fixedUrl.replace(Regex("[\"'\\s]+$"), "")
+        
+        // URL'nin başında iki slash kaldıysa düzelt
+        if (fixedUrl.startsWith("//")) {
+            fixedUrl = "https:$fixedUrl"
+        }
+        
+        // URL protokol içermiyor mu?
+        if (!fixedUrl.startsWith("http")) {
+            // Eğer root path ise
+            fixedUrl = if (fixedUrl.startsWith("/")) {
+                "${mainUrl}${fixedUrl}"
+            } else {
+                "${mainUrl}/${fixedUrl}"
+            }
+        }
+        
+        // UTF-8 karakter sorunu düzeltme
+        try {
+            val uri = java.net.URI(fixedUrl)
+            val encodedPath = uri.rawPath?.let { path ->
+                path.replace(" ", "%20")
+                    .replace("|", "%7C")
+                    .replace("\"", "%22")
+                    .replace("'", "%27")
+                    .replace("<", "%3C")
+                    .replace(">", "%3E")
+            }
+            
+            if (encodedPath != null && encodedPath != uri.rawPath) {
+                val scheme = uri.scheme
+                val authority = uri.authority
+                val query = uri.rawQuery?.let { "?$it" } ?: ""
+                val fragment = uri.fragment?.let { "#$it" } ?: ""
+                
+                fixedUrl = "$scheme://$authority$encodedPath$query$fragment"
+            }
+        } catch (e: Exception) {
+            Log.e(this@Dizifun.name, "URL normalization error: ${e.message}")
+        }
+        
+        return fixedUrl
+    }
+
     // JavaScript içindeki hex-encoded URL'leri bul
     private fun findHexEncodedUrls(html: String): List<String> {
         val foundUrls = mutableListOf<String>()
         
         try {
-            // \x ile başlayan hex dizilerini bul (JavaScript hex encoding)
+            // 1. \x ile başlayan hex dizilerini bul (JavaScript hex encoding)
             val hexPattern = "\\\\x[0-9a-fA-F]{2}".toRegex()
             
             // HTML içeriğini var tanımlamalarına göre parçala
@@ -1073,7 +1012,7 @@ class Dizifun : MainAPI() {
             splitByVar.forEach { block ->
                 if (hexPattern.containsMatchIn(block)) {
                     // Uzun hex dizileri URL olabilir
-                    val potentialHexString = block.substringAfter("=").substringBefore(";").trim()
+                    val potentialHexString = block.substringAfter("=", "").substringBefore(";", "").trim()
                     
                     // Birçok hex karakteri içeren string'leri kontrol et
                     if (potentialHexString.contains("\\x") && potentialHexString.count { it == '\\' } > 5) {
@@ -1098,8 +1037,8 @@ class Dizifun : MainAPI() {
                 }
             }
             
-            // hexToString fonksiyonuna yapılan çağrıları ara
-            val hexFunctionCallPattern = "hexToString\\([\"']([0-9a-fA-F]+)[\"']\\)".toRegex()
+            // 2. hexToString fonksiyonuna yapılan çağrıları ara
+            val hexFunctionCallPattern = "(?:hexToString|fromHex|decodeHex|hexDecode)\\([\"']([0-9a-fA-F]+)[\"']\\)".toRegex()
             val hexFunctionCalls = hexFunctionCallPattern.findAll(html)
             
             hexFunctionCalls.forEach { matchResult ->
@@ -1116,118 +1055,90 @@ class Dizifun : MainAPI() {
                 }
             }
             
-            // Doğrudan hex string'leri bul
-            val directHexPattern = "[\"']([0-9a-fA-F]{10,})[\"']".toRegex()
-            val directHexMatches = directHexPattern.findAll(html)
+            // 3. Doğrudan hex string'leri bul
+            val directHexPatterns = listOf(
+                "[\"']([0-9a-fA-F]{30,})[\"']".toRegex(),  // Uzun hex dizisi
+                "\\bvar\\s+\\w+\\s*=\\s*[\"']([0-9a-fA-F]{30,})[\"']".toRegex(),  // Değişken atama
+                "\\bconst\\s+\\w+\\s*=\\s*[\"']([0-9a-fA-F]{30,})[\"']".toRegex(),  // Const değişken
+                "\\blet\\s+\\w+\\s*=\\s*[\"']([0-9a-fA-F]{30,})[\"']".toRegex()   // Let değişken
+            )
             
-            directHexMatches.forEach { matchResult ->
+            directHexPatterns.forEach { pattern ->
+                val directHexMatches = pattern.findAll(html)
+                directHexMatches.forEach { matchResult ->
+                    try {
+                        val hexValue = matchResult.groupValues[1]
+                        if (hexValue.length >= 30) {  // Çok kısa hex string'ler URL olmayacaktır
+                            val decodedValue = hexToString(hexValue)
+                            if (decodedValue.contains("http") || 
+                                decodedValue.contains(".mp4") || 
+                                decodedValue.contains(".m3u8")) {
+                                foundUrls.add(decodedValue)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e(this@Dizifun.name, "Direct hex decode error: ${e.message}")
+                    }
+                }
+            }
+            
+            // 4. Base64 ile şifrelenmiş içerikleri kontrol et
+            val base64Pattern = "(?:atob|window\\.atob)\\([\"']([A-Za-z0-9+/=]+)[\"']\\)".toRegex()
+            val base64Matches = base64Pattern.findAll(html)
+            
+            base64Matches.forEach { matchResult ->
                 try {
-                    val hexValue = matchResult.groupValues[1]
-                    val decodedValue = hexToString(hexValue)
+                    val base64Value = matchResult.groupValues[1]
+                    if (base64Value.length > 20) {  // Çok kısa base64 string'ler URL olmayacaktır
+                        val decodedValue = base64Decode(base64Value)
+                        if (decodedValue.contains("http") || 
+                            decodedValue.contains(".mp4") || 
+                            decodedValue.contains(".m3u8")) {
+                            foundUrls.add(decodedValue)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(this@Dizifun.name, "Base64 decode error: ${e.message}")
+                }
+            }
+            
+            // 5. Doğrudan base64 string'lerini kontrol et
+            val directBase64Pattern = "[\"']([A-Za-z0-9+/=]{40,})[\"']".toRegex()
+            val directBase64Matches = directBase64Pattern.findAll(html)
+            
+            directBase64Matches.forEach { matchResult ->
+                try {
+                    val base64Value = matchResult.groupValues[1]
+                    val decodedValue = base64Decode(base64Value)
                     if (decodedValue.contains("http") || 
                         decodedValue.contains(".mp4") || 
                         decodedValue.contains(".m3u8")) {
                         foundUrls.add(decodedValue)
                     }
                 } catch (e: Exception) {
-                    Log.e(this@Dizifun.name, "Direct hex decode error: ${e.message}")
+                    // Sadece log'la, Bu çoğu zaman base64 olmayan normal string'ler için hata verir
+                    // Log.e(this@Dizifun.name, "Direct base64 decode error: ${e.message}")
                 }
             }
         } catch (e: Exception) {
-            Log.e(this@Dizifun.name, "Error finding hex URLs: ${e.message}")
+            Log.e(this@Dizifun.name, "Error finding encoded URLs: ${e.message}")
         }
         
         // Tekrarlanan URL'leri temizle
         return foundUrls.distinct()
     }
-
-    // İframe src değerinin hex-encoded olup olmadığını kontrol et ve deşifre et
-    private fun checkAndDecodeIframeSrc(iframeSrc: String): String {
-        // Eğer normal bir URL ise doğrudan döndür
-        if (iframeSrc.startsWith("http")) {
-            return iframeSrc
-        }
-        
-        // JavaScript:something(...) formatında mı?
-        if (iframeSrc.startsWith("javascript:")) {
-            // Hex-encoded URL içeriyor mu kontrol et
-            val hexMatches = "\\\\x[0-9a-fA-F]{2}".toRegex().findAll(iframeSrc)
-            if (hexMatches.any()) {
-                try {
-                    // JavaScript: kısmını çıkar
-                    val jsContent = iframeSrc.substringAfter("javascript:")
-                    // Hex encode edilmiş kısımları bul
-                    val possibleUrls = findHexEncodedUrls(jsContent)
-                    // HTTP ile başlayan ilk URL'yi döndür
-                    val httpUrl = possibleUrls.firstOrNull { it.startsWith("http") }
-                    if (httpUrl != null) {
-                        Log.d(this@Dizifun.name, "Javascript'ten çözülen URL: $httpUrl")
-                        return httpUrl
-                    }
-                } catch (e: Exception) {
-                    Log.e(this@Dizifun.name, "Javascript iframe src çözülemedi: ${e.message}")
-                }
-            }
-        }
-        
-        // Doğrudan hex-encoded olabilir mi?
-        if (iframeSrc.length > 20 && iframeSrc.all { it.isLetterOrDigit() }) {
-            try {
-                val decoded = hexToString(iframeSrc)
-                if (decoded.startsWith("http")) {
-                    Log.d(this@Dizifun.name, "Hex-encoded iframe src çözüldü: $decoded")
-                    return decoded
-                }
-            } catch (e: Exception) {
-                Log.e(this@Dizifun.name, "Hex iframe src çözülemedi: ${e.message}")
-            }
-        }
-        
-        // Hiçbir şey yapılamadıysa orijinal değeri döndür
-        return iframeSrc
-    }
-
-    // Debug için bilgileri logla
-    private suspend fun logSourceInfo(url: String) {
-        try {
-            Log.d(this@Dizifun.name, "URL işleniyor: $url")
-            val response = app.get(url, headers = mapOf(
-                "User-Agent" to USER_AGENT,
-                "Referer" to mainUrl
-            ))
-            Log.d(this@Dizifun.name, "HTTP Durum: ${response.code}")
-            Log.d(this@Dizifun.name, "Content-Type: ${response.headers["Content-Type"]}")
-            
-            val contentLength = response.headers["Content-Length"]?.toIntOrNull() ?: 0
-            Log.d(this@Dizifun.name, "İçerik Boyutu: ${contentLength / 1024} KB")
-            
-            // İlk 100 karakteri logla
-            val previewContent = response.text.take(100).replace("\n", " ")
-            Log.d(this@Dizifun.name, "İçerik Önizleme: $previewContent...")
-        } catch (e: Exception) {
-            Log.e(this@Dizifun.name, "Kaynak bilgisi loglanırken hata: ${e.message}")
-        }
-    }
     
-    // URL'yi düzelt ve normalleştir
-    private fun normalizeUrl(url: String): String {
-        var fixedUrl = url
-        
-        // URL'nin başında iki slash kaldıysa düzelt
-        if (fixedUrl.startsWith("//")) {
-            fixedUrl = "https:$fixedUrl"
-        }
-        
-        // URL protokol içermiyor mu?
-        if (!fixedUrl.startsWith("http")) {
-            // Eğer root path ise
-            fixedUrl = if (fixedUrl.startsWith("/")) {
-                "${mainUrl}${fixedUrl}"
-            } else {
-                "${mainUrl}/${fixedUrl}"
+    // Base64 stringini decode et
+    private fun base64Decode(base64String: String): String {
+        return try {
+            android.util.Base64.decode(base64String, android.util.Base64.DEFAULT).toString(Charsets.UTF_8)
+        } catch (e: Exception) {
+            // İkinci bir yöntem dene
+            try {
+                String(java.util.Base64.getDecoder().decode(base64String), Charsets.UTF_8)
+            } catch (e2: Exception) {
+                throw e2
             }
         }
-        
-        return fixedUrl
     }
 }
