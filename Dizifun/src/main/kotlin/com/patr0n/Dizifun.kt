@@ -547,7 +547,7 @@ class Dizifun : MainAPI() {
                                 }
                                 
                                 val fullUrl = if (data.startsWith("?") || data.startsWith("/")) {
-                                    if (data.startsWith("?")) url + data else mainUrl + data
+                                    if (data.startsWith("?")) data else mainUrl + data
                                 } else {
                                     data
                                 }
@@ -618,7 +618,7 @@ class Dizifun : MainAPI() {
                                 val data = fixUrlNull(href)
                                 if (data != null) {
                                     val fullUrl = if (data.startsWith("?") || data.startsWith("/")) {
-                                        if (data.startsWith("?")) url + data else mainUrl + data
+                                        if (data.startsWith("?")) data else mainUrl + data
                                     } else {
                                         data
                                     }
@@ -706,7 +706,7 @@ class Dizifun : MainAPI() {
                                 val data = fixUrlNull(href)
                                 if (data != null) {
                                     val fullUrl = if (data.startsWith("?") || data.startsWith("/")) {
-                                        if (data.startsWith("?")) url + data else mainUrl + data
+                                        if (data.startsWith("?")) data else mainUrl + data
                                     } else {
                                         data
                                     }
@@ -758,7 +758,7 @@ class Dizifun : MainAPI() {
                             val data = fixUrlNull(href)
                             if (data != null) {
                                 val fullUrl = if (data.startsWith("?") || data.startsWith("/")) {
-                                    if (data.startsWith("?")) url + data else mainUrl + data
+                                    if (data.startsWith("?")) data else mainUrl + data
                                 } else {
                                     data
                                 }
@@ -870,15 +870,14 @@ class Dizifun : MainAPI() {
                             videoSources.forEach { sourceUrl ->
                                 val normalizedSourceUrl = normalizeUrl(sourceUrl)
                                 callback.invoke(
-                                    newExtractorLink(
+                                    ExtractorLink(
                                         this@Dizifun.name,
                                         "Direct (Video Tag)",
                                         normalizedSourceUrl,
-                                        if (normalizedSourceUrl.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
-                                    ) {
-                                        this.referer = url
-                                        this.quality = Qualities.Unknown.value
-                                    }
+                                        url,
+                                        Qualities.Unknown.value,
+                                        normalizedSourceUrl.contains(".m3u8")
+                                    )
                                 )
                             }
                         }
@@ -911,15 +910,14 @@ class Dizifun : MainAPI() {
                         
                         // .m3u8 dosyaları için özel işlem
                         callback.invoke(
-                            newExtractorLink(
+                            ExtractorLink(
                                 this@Dizifun.name,
                                 if (normalizedVideoUrl.contains(".m3u8")) "${sourceName} HLS" else sourceName,
                                 normalizedVideoUrl,
-                                if (normalizedVideoUrl.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
-                            ) {
-                                this.referer = normalizedIframeSrc
-                                this.quality = quality
-                            }
+                                normalizedIframeSrc,
+                                quality,
+                                normalizedVideoUrl.contains(".m3u8")
+                            )
                         )
                     }
                     
@@ -964,15 +962,14 @@ class Dizifun : MainAPI() {
                                     }
                                     
                                     callback.invoke(
-                                        newExtractorLink(
+                                        ExtractorLink(
                                             this@Dizifun.name,
                                             if (normalizedAltVideoUrl.contains(".m3u8")) "${sourceName} HLS" else sourceName,
                                             normalizedAltVideoUrl,
-                                            if (normalizedAltVideoUrl.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
-                                        ) {
-                                            this.referer = normalizedEmbedUrl
-                                            this.quality = quality
-                                        }
+                                            normalizedEmbedUrl,
+                                            quality,
+                                            normalizedAltVideoUrl.contains(".m3u8")
+                                        )
                                     )
                                 }
                             } catch (e: Exception) {
@@ -1011,15 +1008,14 @@ class Dizifun : MainAPI() {
                     videoSources.forEach { sourceUrl ->
                         val normalizedSourceUrl = normalizeUrl(sourceUrl)
                         callback.invoke(
-                            newExtractorLink(
+                            ExtractorLink(
                                 this@Dizifun.name,
                                 "Direct (Video Tag)",
                                 normalizedSourceUrl,
-                                if (normalizedSourceUrl.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
-                            ) {
-                                this.referer = url
-                                this.quality = Qualities.Unknown.value
-                            }
+                                url,
+                                Qualities.Unknown.value,
+                                normalizedSourceUrl.contains(".m3u8")
+                            )
                         )
                     }
                 } else {
@@ -1191,7 +1187,7 @@ class Dizifun : MainAPI() {
         return iframeSrc
     }
 
-    // Debug için bilgileri logla - suspend fonksiyon olarak değiştirildi
+    // Debug için bilgileri logla
     private suspend fun logSourceInfo(url: String) {
         try {
             Log.d(this@Dizifun.name, "URL işleniyor: $url")
