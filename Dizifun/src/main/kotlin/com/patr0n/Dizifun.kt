@@ -4,6 +4,8 @@ import android.util.Log
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
+import com.lagradost.cloudstream3.utils.ExtractorLink
+import com.lagradost.cloudstream3.utils.Qualities
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
 
@@ -49,14 +51,17 @@ class Dizifun : MainAPI() {
         val home = document.select("div.uk-overlay.uk-overlay-hover").mapNotNull {
             it.toMainPageResult()
         }
-        return newHomePageResponse(request.name, home)
+        
+        return HomePageResponse(
+            listOf(HomePageList(request.name, home))
+        )
     }
 
     private fun Element.toMainPageResult(): SearchResponse? {
-        val title = this.select("h5.uk-panel-title").text() ?: return null
-        val href = this.select("a.uk-position-cover").attr("href") ?: return null
-        val posterUrl = this.select("img").attr("src")
-        val year = this.select("span.uk-display-block.uk-text-muted").text().trim().toIntOrNull()
+        val title = this.select("h5.uk-panel-title")?.text() ?: return null
+        val href = this.select("a.uk-position-cover")?.attr("href") ?: return null
+        val posterUrl = this.select("img")?.attr("src")
+        val year = this.select("span.uk-display-block.uk-text-muted")?.text()?.trim()?.toIntOrNull()
         val type = if (href.contains("/dizi/")) TvType.TvSeries else TvType.Movie
 
         return newMovieSearchResponse(title, href, type) {
@@ -73,10 +78,10 @@ class Dizifun : MainAPI() {
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
-        val title = this.select("h5.uk-panel-title").text() ?: return null
-        val href = this.select("a.uk-position-cover").attr("href") ?: return null
-        val posterUrl = this.select("img").attr("src")
-        val year = this.select("span.uk-display-block.uk-text-muted").text().trim().toIntOrNull()
+        val title = this.select("h5.uk-panel-title")?.text() ?: return null
+        val href = this.select("a.uk-position-cover")?.attr("href") ?: return null
+        val posterUrl = this.select("img")?.attr("src")
+        val year = this.select("span.uk-display-block.uk-text-muted")?.text()?.trim()?.toIntOrNull()
         val type = if (href.contains("/dizi/")) TvType.TvSeries else TvType.Movie
 
         return newMovieSearchResponse(title, href, type) {
@@ -88,40 +93,33 @@ class Dizifun : MainAPI() {
     override suspend fun load(url: String): LoadResponse? {
         val document = app.get(url).document
         
-        val title = document.select("h1.text-bold").text() ?: return null
-        val poster = document.select("div.media-cover img").attr("src")
-        val year = document.select("ul.subnav li").text().substringAfter("Dizi Yılı: ").toIntOrNull()
-        val description = document.select("p.text-muted").text()
-        val type = if (document.select("div.series-info").text().contains("Dizi")) TvType.TvSeries else TvType.Movie
-        val rating = document.select("span.rating").text().toRatingInt()
-        val duration = document.select("span.runtime").text().split(" ").first().toIntOrNull()
-        val tags = document.select("div.genres a").map { it.text() }
-        val recommendations = document.select("div.related-items div.uk-overlay").mapNotNull { it.toRecommendationResult() }
-        val actors = document.select("div.actors-container div.actor-card").mapNotNull {
-            try {
-                Actor(
-                    name = it.select("span.actor-name").text(),
-                    image = it.select("img").attr("src")
+        val title = document.select("h1.text-bold")?.text() ?: return null
+        val poster = document.select("div.media-cover img")?.attr("src")
+        val year = document.select("ul.subnav li")?.text()?.substringAfter("Dizi Yılı: ")?.toIntOrNull()
+        val description = document.select("p.text-muted")?.text()
+        val type = if (document.select("div.series-info")?.text()?.contains("Dizi") == true) TvType.TvSeries else TvType.Movie
+        val rating = document.select("span.rating")?.text()?.toRatingInt()
+        val duration = document.select("span.runtime")?.text()?.split(" ")?.firstOrNull()?.toIntOrNull()
+        val tags = document.select("div.genres a")?.map { it.text() }
+        val recommendations = document.select("div.related-items div.uk-overlay")?.mapNotNull { it.toRecommendationResult() }
+        val actors = document.select("div.actors-container div.actor-card")?.mapNotNull {
+            ActorData(
+                actor = Actor(
+                    it.select("span.actor-name")?.text() ?: return@mapNotNull null,
+                    it.select("img")?.attr("src")
                 )
-            } catch (e: Exception) {
-                null
-            }
+            )
         }
-        val trailer = document.select("iframe").attr("src")?.let { 
+        val trailer = document.select("iframe")?.attr("src")?.let { 
             if (it.contains("youtube")) it else null 
         }
 
         val episodes = if (type == TvType.TvSeries) {
             document.select("div.episode-button").mapNotNull {
-                try {
-                    val episode = it.text().substringAfter("Bölüm").toIntOrNull() ?: return@mapNotNull null
-                    Episode(
-                        data = it.parent().attr("href"),
-                        episode = episode,
-                        name = "Bölüm $episode"
-                    )
-                } catch (e: Exception) {
-                    null
+                val episode = it.text().substringAfter("Bölüm").toIntOrNull() ?: return@mapNotNull null
+                newEpisode(it.parent()?.attr("href") ?: return@mapNotNull null) {
+                    this.episode = episode
+                    this.name = "Bölüm $episode"
                 }
             }
         } else null
@@ -134,16 +132,16 @@ class Dizifun : MainAPI() {
             this.duration = duration
             this.tags = tags
             this.recommendations = recommendations
-            this.episodes = episodes
+            if (type == TvType.TvSeries) this.episodes = episodes
             addActors(actors)
             addTrailer(trailer)
         }
     }
 
     private fun Element.toRecommendationResult(): SearchResponse? {
-        val title = this.select("h5.uk-panel-title").text() ?: return null
-        val href = this.select("a.uk-position-cover").attr("href") ?: return null
-        val posterUrl = this.select("img").attr("src")
+        val title = this.select("h5.uk-panel-title")?.text() ?: return null
+        val href = this.select("a.uk-position-cover")?.attr("href") ?: return null
+        val posterUrl = this.select("img")?.attr("src")
         val type = if (href.contains("/dizi/")) TvType.TvSeries else TvType.Movie
 
         return newMovieSearchResponse(title, href, type) {
@@ -160,14 +158,14 @@ class Dizifun : MainAPI() {
         Log.d("Dizifun", "Loading links for: $data")
         try {
             val document = app.get(data).document
-            val videoUrl = document.select("iframe").attr("src")
+            val videoUrl = document.select("iframe")?.attr("src")
             
-            if (videoUrl.isNotBlank()) {
+            if (!videoUrl.isNullOrBlank()) {
                 // Video kalitesini belirle
                 val quality = when {
-                    videoUrl.contains("1080p") -> Qualities.FullHd.value
-                    videoUrl.contains("720p") -> Qualities.HD.value
-                    videoUrl.contains("480p") -> Qualities.SD.value
+                    videoUrl.contains("1080p") -> Qualities.P1080.value
+                    videoUrl.contains("720p") -> Qualities.P720.value
+                    videoUrl.contains("480p") -> Qualities.P480.value
                     else -> Qualities.Unknown.value
                 }
 
@@ -185,17 +183,12 @@ class Dizifun : MainAPI() {
                         url = videoUrl,
                         referer = mainUrl,
                         quality = quality,
-                        isM3u8 = videoUrl.contains(".m3u8"),
-                        headers = mapOf(
-                            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-                            "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-                            "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7"
-                        )
+                        isM3u8 = videoUrl.contains(".m3u8")
                     )
                 )
 
                 // Altyazı varsa ekle
-                document.select("track").forEach { track ->
+                document.select("track")?.forEach { track ->
                     val subUrl = track.attr("src")
                     if (subUrl.isNotBlank()) {
                         subtitleCallback.invoke(
