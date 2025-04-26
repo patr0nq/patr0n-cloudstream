@@ -81,68 +81,36 @@ class Dizifun : MainAPI() {
         // Dizifun ana sayfasındaki içerikleri çekmek için ana seçiciler
         val home = ArrayList<SearchResponse>()
         
-        // movies_recent-item türü içerikleri direkt tara
-        val recentItems = document.select("div.movies_recent-item, div.editor_sec-item, div.featuredseries_recent-item, div.plattab_recent-item")
-        Log.d(this.name, "Found ${recentItems.size} recent items")
+        // Tüm içerik türlerini tek bir seferde topla (tüm kategoriler için çalışacak)
+        val allContentItems = document.select(
+            "div.col-md-2, " +
+            "div.movies_recent-item, " + 
+            "div.editor_sec-item, " + 
+            "div.featuredseries_recent-item, " + 
+            "div.plattab_recent-item, " +
+            "div.episode-item, " +
+            "div.uk-overlay.uk-overlay-hover, " +
+            "article" // Bazı kategorilerde içerikler article içinde olabilir
+        )
         
-        recentItems.forEach { element ->
-            val result = element.toMainPageResult()
+        Log.d(this.name, "Found total ${allContentItems.size} items in category: ${request.name}")
+        
+        allContentItems.forEach { element ->
+            var result: SearchResponse? = null
+            
+            // Her bir HTML yapısı için uygun işleme fonksiyonunu çağır
+            if (element.hasClass("episode-item")) {
+                result = element.toEpisodeResult()
+            } else {
+                result = element.toMainPageResult()
+            }
+            
             if (result != null) {
                 home.add(result)
             }
         }
         
-        // Ana kategorileri işle
-        if (home.isEmpty()) {
-            val rows = document.select("div.container div.row")
-            Log.d(this.name, "Found ${rows.size} rows")
-            
-            rows.forEach { rowElement ->
-                // Kategori başlığını bul (opsiyonel)
-                val categoryTitle = rowElement.selectFirst("h4")?.text()?.trim()
-                
-                if (categoryTitle != null) {
-                    // Başlık altındaki div.col-md-2 içeriklerini al
-                    val colItems = rowElement.select("div.col-md-2")
-                    Log.d(this.name, "Found ${colItems.size} items in category: $categoryTitle")
-                    
-                    colItems.forEach { colElement ->
-                        val result = colElement.toMainPageResult()
-                        if (result != null) {
-                            home.add(result)
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Son eklenen bölümler bölümünü kontrol et
-        if (home.isEmpty()) {
-            val episodeItems = document.select("div.episode-item")
-            Log.d(this.name, "Found ${episodeItems.size} episode items")
-            
-            episodeItems.forEach { element ->
-                val result = element.toEpisodeResult()
-                if (result != null) {
-                    home.add(result)
-                }
-            }
-        }
-        
-        // Eski format içerikleri de kontrol et
-        if (home.isEmpty()) {
-            val overlayItems = document.select("div.uk-overlay.uk-overlay-hover")
-            Log.d(this.name, "Found ${overlayItems.size} overlay items")
-            
-            overlayItems.forEach { element ->
-                val result = element.toMainPageResult()
-                if (result != null) {
-                    home.add(result)
-                }
-            }
-        }
-        
-        Log.d(this.name, "Total items found: ${home.size}")
+        Log.d(this.name, "Total processed items for ${request.name}: ${home.size}")
         return newHomePageResponse(request.name, home)
     }
 
@@ -170,12 +138,17 @@ class Dizifun : MainAPI() {
             this.selectFirst("h5.uk-panel-title") != null -> this.selectFirst("h5.uk-panel-title")?.text()?.trim()
             this.selectFirst("div.name") != null -> this.selectFirst("div.name")?.text()?.trim()
             this.selectFirst("a > strong") != null -> this.selectFirst("a > strong")?.text()?.trim()
+            this.selectFirst("h1, h2, h3, h4, h5, h6") != null -> this.selectFirst("h1, h2, h3, h4, h5, h6")?.text()?.trim()
+            this.selectFirst("strong") != null -> this.selectFirst("strong")?.text()?.trim()
             else -> {
-                // Alternatif başlık bulma
+                // Alternatif başlık bulma yöntemleri
                 val img = this.selectFirst("img")
                 if (img != null) {
                     img.attr("alt").takeIf { !it.isNullOrBlank() }
-                } else null
+                } else {
+                    // Eğer hiçbir başlık bulunamadıysa, doğrudan metin içeriğini dene
+                    this.ownText().takeIf { !it.isBlank() }
+                }
             }
         }
         
@@ -191,12 +164,24 @@ class Dizifun : MainAPI() {
             this.selectFirst("a.featuredseries_recent-link") != null -> fixUrlNull(this.selectFirst("a.featuredseries_recent-link")?.attr("href"))
             this.selectFirst("a.plattab_recent-link") != null -> fixUrlNull(this.selectFirst("a.plattab_recent-link")?.attr("href"))
             this.selectFirst("a.uk-position-cover") != null -> fixUrlNull(this.selectFirst("a.uk-position-cover")?.attr("href"))
+            this.selectFirst("a[href*=dizi], a[href*=film]") != null -> fixUrlNull(this.selectFirst("a[href*=dizi], a[href*=film]")?.attr("href"))
             this.selectFirst("a") != null -> fixUrlNull(this.selectFirst("a")?.attr("href"))
             else -> null
         }
         
         if (href.isNullOrBlank()) {
-            // Log.d("Dizifun", "No href found for title: $title")
+            // Kendimiz bir link mi?
+            if (this.tagName() == "a") {
+                val selfHref = fixUrlNull(this.attr("href"))
+                if (!selfHref.isNullOrBlank()) {
+                    return newMovieSearchResponse(title, selfHref, TvType.TvSeries) {
+                        this.posterUrl = this@toMainPageResult.selectFirst("img")?.attr("src")
+                            ?.let { if (it.startsWith("data:")) null else fixUrlNull(it) }
+                    }
+                }
+            }
+            
+            Log.d("Dizifun", "No href found for title: $title")
             return null
         }
         
@@ -206,7 +191,11 @@ class Dizifun : MainAPI() {
             this.selectFirst("img.movies_recent-image") != null -> fixUrlNull(this.selectFirst("img.movies_recent-image")?.attr("src"))
             this.selectFirst("img.featuredseries_recent-image") != null -> fixUrlNull(this.selectFirst("img.featuredseries_recent-image")?.attr("src")) 
             this.selectFirst("img.plattab_recent-image") != null -> fixUrlNull(this.selectFirst("img.plattab_recent-image")?.attr("src"))
-            this.selectFirst("img") != null -> fixUrlNull(this.selectFirst("img")?.attr("src"))
+            this.selectFirst("img") != null -> {
+                val imgSrc = this.selectFirst("img")?.attr("src")
+                // Data URI'leri filtrele
+                if (imgSrc?.startsWith("data:") == true) null else fixUrlNull(imgSrc)
+            }
             else -> null
         }
         
@@ -224,7 +213,8 @@ class Dizifun : MainAPI() {
         }
         
         // URL'ye göre içerik tipini belirle
-        val type = if (href.contains("/dizi/") || href.contains("sezon") || href.contains("bolum")) {
+        val type = if (href.contains("/dizi/") || href.contains("sezon") || href.contains("bolum") ||
+                     (title.contains("Sezon") && !title.contains("Film"))) {
             TvType.TvSeries
         } else {
             TvType.Movie
@@ -482,14 +472,105 @@ class Dizifun : MainAPI() {
         Log.d(this.name, "Loading links: $data")
         
         val document = app.get(data, headers = defaultHeaders).document
-        val iframe = document.selectFirst("iframe#playerFrame, iframe, div.video-bak iframe")?.attr("src") ?: return false
+        val iframe = document.selectFirst("iframe#playerFrame, iframe, div.video-bak iframe")?.attr("src")
+        
         Log.d(this.name, "Found iframe: $iframe")
         
+        if (iframe.isNullOrBlank()) {
+            // iframe bulunmazsa, video divleri ile deneyelim
+            val videoDiv = document.selectFirst("div.video-bak, div.player-frame, div#playerFrame")
+            if (videoDiv != null) {
+                Log.d(this.name, "Found video div: ${videoDiv.tagName()}")
+                // Video div içindeki olası iframe'i kontrol et
+                val nestedIframe = videoDiv.selectFirst("iframe")?.attr("src")
+                if (!nestedIframe.isNullOrBlank()) {
+                    return loadFromIframe(nestedIframe, data, subtitleCallback, callback)
+                }
+                
+                // Doğrudan div içindeki video kaynağını dene
+                val sourceTag = videoDiv.selectFirst("source")?.attr("src")
+                if (!sourceTag.isNullOrBlank()) {
+                    Log.d(this.name, "Found direct source: $sourceTag")
+                    callback.invoke(
+                        newExtractorLink(
+                            source = name,
+                            name = name,
+                            url = sourceTag,
+                            ExtractorLinkType.VIDEO
+                        ) {
+                            this.referer = data
+                            this.quality = Qualities.Unknown.value
+                        }
+                    )
+                    return true
+                }
+            }
+            
+            // Video elementleri deneyelim
+            val videoElement = document.selectFirst("video")
+            if (videoElement != null) {
+                val sourceTag = videoElement.selectFirst("source")?.attr("src")
+                if (!sourceTag.isNullOrBlank()) {
+                    Log.d(this.name, "Found video element source: $sourceTag")
+                    callback.invoke(
+                        newExtractorLink(
+                            source = name,
+                            name = name,
+                            url = sourceTag,
+                            ExtractorLinkType.VIDEO
+                        ) {
+                            this.referer = data
+                            this.quality = Qualities.Unknown.value
+                        }
+                    )
+                    return true
+                }
+            }
+            
+            // JavaScript kaynağını deneyelim
+            val jsContent = document.select("script").joinToString("\n") { it.html() }
+            val m3u8Regex = Regex("['\"](https?://[^'\"]*\\.m3u8[^'\"]*)['\"]")
+            val mp4Regex = Regex("['\"](https?://[^'\"]*\\.mp4[^'\"]*)['\"]")
+            
+            val m3u8Match = m3u8Regex.find(jsContent)?.groupValues?.get(1)
+            val mp4Match = mp4Regex.find(jsContent)?.groupValues?.get(1)
+            
+            if (!m3u8Match.isNullOrBlank() || !mp4Match.isNullOrBlank()) {
+                val videoUrl = m3u8Match ?: mp4Match ?: return false
+                val isM3u8 = videoUrl.contains(".m3u8")
+                Log.d(this.name, "Found video URL in JavaScript: $videoUrl")
+                
+                callback.invoke(
+                    newExtractorLink(
+                        source = name,
+                        name = name,
+                        url = videoUrl,
+                        if (isM3u8) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
+                    ) {
+                        this.referer = data
+                        this.quality = Qualities.Unknown.value
+                    }
+                )
+                return true
+            }
+            
+            return false
+        }
+        
+        return loadFromIframe(iframe, data, subtitleCallback, callback)
+    }
+    
+    private suspend fun loadFromIframe(
+        iframe: String,
+        refererUrl: String,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
         val headers = mapOf(
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
             "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Referer" to data
+            "Referer" to refererUrl
         )
 
         try {
@@ -501,18 +582,26 @@ class Dizifun : MainAPI() {
             }
             
             Log.d(this.name, "Loading iframe: $decodedIframe")
-            val iframeDoc = app.get(decodedIframe, headers = headers).document
+            val iframeResponse = app.get(decodedIframe, headers = headers)
+            val iframeDoc = iframeResponse.document
+            
+            // Kaynak kodunu al, debugging için
+            val fullSource = iframeDoc.outerHtml()
+            Log.d(this.name, "Iframe source length: ${fullSource.length}")
+            
+            // Doğrudan source etiketini dene
             var videoUrl = iframeDoc.selectFirst("source")?.attr("src")
             
             // Doğrudan kaynak bulunamadıysa, gömülü oynatıcıları kontrol et
             if (videoUrl.isNullOrBlank()) {
                 // Sayfa kaynaklarında m3u8/mp4 linklerini bul
-                val pageSource = iframeDoc.outerHtml()
+                val pageSource = fullSource
                 
                 // Farklı regex desenlerini dene
                 val m3u8Regex = Regex("['\"](https?://[^'\"]*\\.m3u8[^'\"]*)['\"]")
                 val mp4Regex = Regex("['\"](https?://[^'\"]*\\.mp4[^'\"]*)['\"]")
-                val hexRegex = Regex("hexToString\\(\"([0-9a-fA-F]+)\"\\)")
+                val srcRegex = Regex("src=['\"]([^'\"]+)['\"]")
+                val hexRegex = Regex("hexToString\\(['\"]([0-9a-fA-F]+)['\"]\\)")
                 val embedRegex = Regex("src=['\"](.+?)['\"]")
                 
                 val m3u8Match = m3u8Regex.find(pageSource)?.groupValues?.get(1)
@@ -522,13 +611,14 @@ class Dizifun : MainAPI() {
                 Log.d(this.name, "m3u8 match: $m3u8Match, mp4 match: $mp4Match, embed match: $embedMatch")
                 
                 // Hex kodlanmış URL'yi kontrol et
-                val hexMatch = hexRegex.find(pageSource)?.groupValues?.get(1)
-                if (!hexMatch.isNullOrBlank()) {
+                val hexMatches = hexRegex.findAll(pageSource).map { it.groupValues[1] }.toList()
+                for (hexMatch in hexMatches) {
                     try {
                         val decodedHex = hexToString(hexMatch)
                         Log.d(this.name, "Decoded hex: $decodedHex")
                         if (decodedHex.contains(".m3u8") || decodedHex.contains(".mp4")) {
                             videoUrl = decodedHex
+                            break
                         }
                     } catch (e: Exception) {
                         Log.e(this.name, "Error decoding hex string: ${e.message}")
@@ -540,24 +630,83 @@ class Dizifun : MainAPI() {
                 }
                 
                 // Eğer embed video varsa ve video hala bulunamadıysa
-                if (videoUrl.isNullOrBlank() && !embedMatch.isNullOrBlank()) {
-                    val embedUrl = when {
-                        embedMatch.startsWith("//") -> "https:$embedMatch"
-                        !embedMatch.startsWith("http") -> "$mainUrl$embedMatch"
-                        else -> embedMatch
+                if (videoUrl.isNullOrBlank()) {
+                    // Tüm iframe'leri dene
+                    val nestedIframes = iframeDoc.select("iframe")
+                    for (nestedIframe in nestedIframes) {
+                        val nestedSrc = nestedIframe.attr("src")
+                        if (!nestedSrc.isNullOrBlank()) {
+                            val nestedUrl = when {
+                                nestedSrc.startsWith("//") -> "https:$nestedSrc"
+                                !nestedSrc.startsWith("http") -> "$mainUrl$nestedSrc"
+                                else -> nestedSrc
+                            }
+                            
+                            try {
+                                Log.d(this.name, "Loading nested iframe: $nestedUrl")
+                                val nestedDoc = app.get(nestedUrl, headers = headers).document
+                                val nestedSource = nestedDoc.outerHtml()
+                                
+                                val nestedM3u8 = m3u8Regex.find(nestedSource)?.groupValues?.get(1)
+                                val nestedMp4 = mp4Regex.find(nestedSource)?.groupValues?.get(1)
+                                
+                                if (!nestedM3u8.isNullOrBlank() || !nestedMp4.isNullOrBlank()) {
+                                    videoUrl = nestedM3u8 ?: nestedMp4
+                                    break
+                                }
+                            } catch (e: Exception) {
+                                Log.e(this.name, "Error loading nested iframe: ${e.message}")
+                            }
+                        }
                     }
                     
-                    try {
-                        Log.d(this.name, "Loading embed URL: $embedUrl")
-                        val embedDoc = app.get(embedUrl, headers = headers).document
-                        val embedSource = embedDoc.outerHtml()
+                    // Player.js ve benzeri dosyaları kontrol et
+                    val scriptSrcs = iframeDoc.select("script[src]").map { it.attr("src") }
+                    for (scriptSrc in scriptSrcs) {
+                        if (scriptSrc.contains("player") || scriptSrc.contains(".js")) {
+                            val scriptUrl = when {
+                                scriptSrc.startsWith("//") -> "https:$scriptSrc"
+                                !scriptSrc.startsWith("http") -> "$mainUrl$scriptSrc"
+                                else -> scriptSrc
+                            }
+                            
+                            try {
+                                Log.d(this.name, "Checking JS file: $scriptUrl")
+                                val jsContent = app.get(scriptUrl, headers = headers).text
+                                
+                                val jsM3u8 = m3u8Regex.find(jsContent)?.groupValues?.get(1)
+                                val jsMp4 = mp4Regex.find(jsContent)?.groupValues?.get(1)
+                                
+                                if (!jsM3u8.isNullOrBlank() || !jsMp4.isNullOrBlank()) {
+                                    videoUrl = jsM3u8 ?: jsMp4
+                                    break
+                                }
+                            } catch (e: Exception) {
+                                Log.e(this.name, "Error checking JS file: ${e.message}")
+                            }
+                        }
+                    }
+                    
+                    // Diğer src değerlerini kontrol et
+                    if (videoUrl.isNullOrBlank() && !embedMatch.isNullOrBlank()) {
+                        val embedUrl = when {
+                            embedMatch.startsWith("//") -> "https:$embedMatch"
+                            !embedMatch.startsWith("http") -> "$mainUrl$embedMatch"
+                            else -> embedMatch
+                        }
                         
-                        videoUrl = m3u8Regex.find(embedSource)?.groupValues?.get(1)
-                            ?: mp4Regex.find(embedSource)?.groupValues?.get(1)
-                        
-                        Log.d(this.name, "Video URL from embed: $videoUrl")
-                    } catch (e: Exception) {
-                        Log.e(this.name, "Error processing embed: ${e.message}")
+                        try {
+                            Log.d(this.name, "Loading embed URL: $embedUrl")
+                            val embedDoc = app.get(embedUrl, headers = headers).document
+                            val embedSource = embedDoc.outerHtml()
+                            
+                            videoUrl = m3u8Regex.find(embedSource)?.groupValues?.get(1)
+                                ?: mp4Regex.find(embedSource)?.groupValues?.get(1)
+                            
+                            Log.d(this.name, "Video URL from embed: $videoUrl")
+                        } catch (e: Exception) {
+                            Log.e(this.name, "Error processing embed: ${e.message}")
+                        }
                     }
                 }
             }
@@ -598,7 +747,7 @@ class Dizifun : MainAPI() {
                 }
                 return true
             } else {
-                Log.e(this.name, "No video URL found")
+                Log.e(this.name, "No video URL found in iframe")
             }
         } catch (e: Exception) {
             Log.e(this.name, "Error loading links: ${e.message}")
