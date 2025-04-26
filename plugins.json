@@ -123,26 +123,6 @@
         "name": "DiziBox"
     },
     {
-        "iconUrl": "https://www.google.com/s2/favicons?domain=www.dizifun2.com&sz=%size%",
-        "apiVersion": 1,
-        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 35470,
-        "status": 1,
-        "language": "tr",
-        "authors": [
-            "patr0n"
-        ],
-        "tvTypes": [
-            "Movie",
-            "TvSeries"
-        ],
-        "version": 1,
-        "internalName": "Dizifun",
-        "description": "Dizifun.",
-        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/Dizifun.cs3",
-        "name": "Dizifun"
-    },
-    {
         "iconUrl": "https://www.google.com/s2/favicons?domain=dizigom1.co&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
