@@ -89,9 +89,9 @@ class Dizifun : MainAPI() {
                 addActors(actors)
             }
         } else {
-            val episodes = document.select("div.parts-middle").mapNotNull {
-                val epName    = it.selectFirst("span.episodetitle")?.text()?.trim() ?: return@mapNotNull null
-                val epHref    = fixUrlNull(it.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
+            val episodes = document.select("div.episode-box").mapNotNull {
+                val epName    = it.selectFirst("div.episode-name a")?.text()?.trim() ?: return@mapNotNull null
+                val epHref    = fixUrlNull(it.selectFirst("div.episode-name a")?.attr("href")) ?: return@mapNotNull null
                 val epEpisode = Regex("(\\d+)\\.Bölüm").find(epName)?.groupValues?.get(1)?.toIntOrNull()
                 val epSeason  = Regex("(\\d+)\\.Sezon").find(epName)?.groupValues?.get(1)?.toIntOrNull() ?: 1
 
