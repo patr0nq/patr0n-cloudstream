@@ -525,368 +525,434 @@ class Dizifun : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        Log.d(this.name, "Loading links: $data")
+        val url = data
+        logger.debug("Video linkleri yükleniyor: $url")
         
-        val document = app.get(data, headers = defaultHeaders).document
-        val iframe = document.selectFirst("iframe#playerFrame, iframe, div.video-bak iframe")?.attr("src")
-        
-        Log.d(this.name, "Found iframe: $iframe")
-        
-        if (iframe.isNullOrBlank()) {
-            // iframe bulunmazsa, video divleri ile deneyelim
-            val videoDiv = document.selectFirst("div.video-bak, div.player-frame, div#playerFrame")
-            if (videoDiv != null) {
-                Log.d(this.name, "Found video div: ${videoDiv.tagName()}")
-                // Video div içindeki olası iframe'i kontrol et
-                val nestedIframe = videoDiv.selectFirst("iframe")?.attr("src")
-                if (!nestedIframe.isNullOrBlank()) {
-                    return loadFromIframe(nestedIframe, data, subtitleCallback, callback)
-                }
+        try {
+            val doc = app.get(url, headers = mapOf(
+                "User-Agent" to USER_AGENT,
+                "Referer" to mainUrl
+            )).document
+            
+            // İframe kaynağını bul
+            val rawIframeSrc = doc.select("iframe").attr("src")
+            if (rawIframeSrc.isNotEmpty()) {
+                // İframe src'yi kontrol et ve gerekirse decode et
+                val iframeSrc = checkAndDecodeIframeSrc(rawIframeSrc)
+                val normalizedIframeSrc = normalizeUrl(iframeSrc)
+                logger.debug("İframe kaynağı bulundu: $normalizedIframeSrc")
                 
-                // Doğrudan div içindeki video kaynağını dene
-                val sourceTag = videoDiv.selectFirst("source")?.attr("src")
-                if (!sourceTag.isNullOrBlank()) {
-                    Log.d(this.name, "Found direct source: $sourceTag")
-                    callback.invoke(
-                        newExtractorLink(
-                            source = name,
-                            name = name,
-                            url = sourceTag,
-                            ExtractorLinkType.VIDEO
-                        ) {
-                            this.referer = data
-                            this.quality = Qualities.Unknown.value
-                        }
-                    )
-                    return true
-                }
-            }
-            
-            // Video elementleri deneyelim
-            val videoElement = document.selectFirst("video")
-            if (videoElement != null) {
-                val sourceTag = videoElement.selectFirst("source")?.attr("src")
-                if (!sourceTag.isNullOrBlank()) {
-                    Log.d(this.name, "Found video element source: $sourceTag")
-                    callback.invoke(
-                        newExtractorLink(
-                            source = name,
-                            name = name,
-                            url = sourceTag,
-                            ExtractorLinkType.VIDEO
-                        ) {
-                            this.referer = data
-                            this.quality = Qualities.Unknown.value
-                        }
-                    )
-                    return true
-                }
-            }
-            
-            // JavaScript kaynağını deneyelim
-            val jsContent = document.select("script").joinToString("\n") { it.html() }
-            val m3u8Regex = Regex("['\"](https?://[^'\"]*\\.m3u8[^'\"]*)['\"]")
-            val mp4Regex = Regex("['\"](https?://[^'\"]*\\.mp4[^'\"]*)['\"]")
-            
-            val m3u8Match = m3u8Regex.find(jsContent)?.groupValues?.get(1)
-            val mp4Match = mp4Regex.find(jsContent)?.groupValues?.get(1)
-            
-            if (!m3u8Match.isNullOrBlank() || !mp4Match.isNullOrBlank()) {
-                val videoUrl = m3u8Match ?: mp4Match ?: return false
-                val isM3u8 = videoUrl.contains(".m3u8")
-                Log.d(this.name, "Found video URL in JavaScript: $videoUrl")
+                // İframe kaynağı ile ilgili detaylı bilgileri logla
+                logSourceInfo(normalizedIframeSrc)
                 
-                callback.invoke(
-                    newExtractorLink(
-                        source = name,
-                        name = name,
-                        url = videoUrl,
-                        if (isM3u8) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
-                    ) {
-                        this.referer = data
-                        this.quality = Qualities.Unknown.value
+                try {
+                    val iframeDoc = app.get(
+                        normalizedIframeSrc,
+                        headers = mapOf(
+                            "User-Agent" to USER_AGENT,
+                            "Referer" to url
+                        )
+                    ).text
+                    
+                    // JavaScript'ten hex-encoded URL'leri bul
+                    val hexUrls = findHexEncodedUrls(iframeDoc)
+                    
+                    if (hexUrls.isEmpty()) {
+                        logger.debug("Hex-encoded URL bulunamadı, alternatif arama yöntemleri deneniyor...")
+                        
+                        // Doğrudan video tag'ı ara
+                        val videoSources = doc.select("video source").map { it.attr("src") }
+                        if (videoSources.isNotEmpty()) {
+                            logger.debug("Video kaynak tag'ları bulundu: ${videoSources.size}")
+                            videoSources.forEach { sourceUrl ->
+                                val normalizedSourceUrl = normalizeUrl(sourceUrl)
+                                callback.invoke(
+                                    ExtractorLink(
+                                        name = this.name,
+                                        source = "Direct (Video Tag)",
+                                        url = normalizedSourceUrl,
+                                        referer = url,
+                                        quality = Qualities.Unknown.value,
+                                        isM3u8 = normalizedSourceUrl.contains(".m3u8")
+                                    )
+                                )
+                            }
+                        }
+                    } else {
+                        logger.debug("${hexUrls.size} hex-encoded URL bulundu")
                     }
-                )
-                return true
+                    
+                    // Bulunan URL'leri işle
+                    hexUrls.forEach { videoUrl ->
+                        val normalizedVideoUrl = normalizeUrl(videoUrl)
+                        logger.debug("Bulunan video URL'si: $normalizedVideoUrl")
+                        
+                        // Video kalitesini belirle
+                        val quality = when {
+                            normalizedVideoUrl.contains("1080") -> Qualities.P1080.value
+                            normalizedVideoUrl.contains("720") -> Qualities.P720.value
+                            normalizedVideoUrl.contains("480") -> Qualities.P480.value
+                            else -> Qualities.P360.value
+                        }
+                        
+                        // Video kaynağını belirle
+                        val sourceName = when {
+                            normalizedVideoUrl.contains("dizifun") -> "Dizifun"
+                            normalizedVideoUrl.contains("youtube") || normalizedVideoUrl.contains("youtu.be") -> "YouTube"
+                            normalizedVideoUrl.contains("vimeo") -> "Vimeo"
+                            normalizedVideoUrl.contains("googlevideo") -> "Google"
+                            normalizedVideoUrl.contains("dailymotion") || normalizedVideoUrl.contains("dai.ly") -> "Dailymotion"
+                            else -> "Direct"
+                        }
+                        
+                        // .m3u8 dosyaları için özel işlem
+                        if (normalizedVideoUrl.contains(".m3u8")) {
+                            callback.invoke(
+                                ExtractorLink(
+                                    name = this.name,
+                                    source = "${sourceName} HLS",
+                                    url = normalizedVideoUrl,
+                                    referer = normalizedIframeSrc,
+                                    quality = quality,
+                                    isM3u8 = true
+                                )
+                            )
+                        } else {
+                            callback.invoke(
+                                ExtractorLink(
+                                    name = this.name,
+                                    source = sourceName,
+                                    url = normalizedVideoUrl,
+                                    referer = normalizedIframeSrc,
+                                    quality = quality
+                                )
+                            )
+                        }
+                    }
+                    
+                    // Alternatif embed URL'leri kontrol et
+                    val altEmbeds = doc.select("a.alter_video").map { it.attr("href") }
+                    if (altEmbeds.isNotEmpty()) {
+                        logger.debug("Alternatif embedler bulundu: ${altEmbeds.size}")
+                        altEmbeds.forEach { embedUrl ->
+                            try {
+                                val normalizedEmbedUrl = normalizeUrl(embedUrl)
+                                logger.debug("Alternatif embed işleniyor: $normalizedEmbedUrl")
+                                
+                                val embedDoc = app.get(
+                                    normalizedEmbedUrl,
+                                    headers = mapOf(
+                                        "User-Agent" to USER_AGENT,
+                                        "Referer" to url
+                                    )
+                                ).text
+                                
+                                val altHexUrls = findHexEncodedUrls(embedDoc)
+                                logger.debug("Alternatif embeddeki hex URL sayısı: ${altHexUrls.size}")
+                                
+                                altHexUrls.forEach { videoUrl ->
+                                    val normalizedAltVideoUrl = normalizeUrl(videoUrl)
+                                    // Video kalitesini belirle
+                                    val quality = when {
+                                        normalizedAltVideoUrl.contains("1080") -> Qualities.P1080.value
+                                        normalizedAltVideoUrl.contains("720") -> Qualities.P720.value
+                                        normalizedAltVideoUrl.contains("480") -> Qualities.P480.value
+                                        else -> Qualities.P360.value
+                                    }
+                                    
+                                    // Video kaynağını belirle
+                                    val sourceName = when {
+                                        normalizedAltVideoUrl.contains("dizifun") -> "Dizifun (Alt)"
+                                        normalizedAltVideoUrl.contains("youtube") || normalizedAltVideoUrl.contains("youtu.be") -> "YouTube (Alt)"
+                                        normalizedAltVideoUrl.contains("vimeo") -> "Vimeo (Alt)"
+                                        normalizedAltVideoUrl.contains("googlevideo") -> "Google (Alt)"
+                                        normalizedAltVideoUrl.contains("dailymotion") || normalizedAltVideoUrl.contains("dai.ly") -> "Dailymotion (Alt)"
+                                        else -> "Direct (Alt)"
+                                    }
+                                    
+                                    if (normalizedAltVideoUrl.contains(".m3u8")) {
+                                        callback.invoke(
+                                            ExtractorLink(
+                                                name = this.name,
+                                                source = "${sourceName} HLS",
+                                                url = normalizedAltVideoUrl,
+                                                referer = normalizedEmbedUrl,
+                                                quality = quality,
+                                                isM3u8 = true
+                                            )
+                                        )
+                                    } else {
+                                        callback.invoke(
+                                            ExtractorLink(
+                                                name = this.name,
+                                                source = sourceName,
+                                                url = normalizedAltVideoUrl,
+                                                referer = normalizedEmbedUrl,
+                                                quality = quality
+                                            )
+                                        )
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                logger.error("Alternatif embed yüklenirken hata: ${e.message}")
+                            }
+                        }
+                    }
+                    
+                    // Altyazıları bul
+                    doc.select("track").forEach { track ->
+                        val subLabel = track.attr("label").ifEmpty { "Türkçe" }
+                        val subKind = track.attr("kind").ifEmpty { "subtitles" }
+                        val subLang = track.attr("srclang").ifEmpty { "tr" }
+                        val subUrl = track.attr("src")
+                        
+                        if (subUrl.isNotEmpty()) {
+                            val normalizedSubUrl = normalizeUrl(subUrl)
+                            logger.debug("Altyazı bulundu: $subLabel - $normalizedSubUrl")
+                            subtitleCallback.invoke(
+                                SubtitleFile(
+                                    subLang,
+                                    normalizedSubUrl,
+                                    subLabel,
+                                    SubtitleOrigin.URL,
+                                    if (subKind == "captions") SubtitleType.CLOSED_CAPTION else SubtitleType.SUBTITLE
+                                )
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    logger.error("İframe içeriği işlenirken hata: ${e.message}")
+                }
+            } else {
+                logger.error("İframe bulunamadı, doğrudan video tag'ı aranıyor...")
+                
+                // Doğrudan video tag'ı ara
+                val videoSources = doc.select("video source").map { it.attr("src") }
+                if (videoSources.isNotEmpty()) {
+                    logger.debug("Video kaynak tag'ları bulundu: ${videoSources.size}")
+                    videoSources.forEach { sourceUrl ->
+                        val normalizedSourceUrl = normalizeUrl(sourceUrl)
+                        callback.invoke(
+                            ExtractorLink(
+                                name = this.name,
+                                source = "Direct (Video Tag)",
+                                url = normalizedSourceUrl,
+                                referer = url,
+                                quality = Qualities.Unknown.value,
+                                isM3u8 = normalizedSourceUrl.contains(".m3u8")
+                            )
+                        )
+                    }
+                } else {
+                    logger.error("Hiçbir video kaynağı bulunamadı")
+                }
             }
-            
+        } catch (e: Exception) {
+            logger.error("Video linkleri yüklenirken hata: ${e.message}")
             return false
         }
         
-        return loadFromIframe(iframe, data, subtitleCallback, callback)
+        return true
     }
     
-    private suspend fun loadFromIframe(
-        iframe: String,
-        refererUrl: String,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean {
-        val headers = mapOf(
-            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language" to "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Referer" to refererUrl
-        )
-
-        try {
-            // Iframe URL'sini düzelt
-            val decodedIframe = when {
-                iframe.startsWith("//") -> "https:$iframe"
-                !iframe.startsWith("http") -> "$mainUrl$iframe"
-                else -> iframe
-            }
-            
-            Log.d(this.name, "Loading iframe: $decodedIframe")
-            val iframeResponse = app.get(decodedIframe, headers = headers)
-            val iframeDoc = iframeResponse.document
-            
-            // Kaynak kodunu al, debugging için
-            val fullSource = iframeDoc.outerHtml()
-            Log.d(this.name, "Iframe source length: ${fullSource.length}")
-            
-            // Doğrudan source etiketini dene
-            var videoUrl = iframeDoc.selectFirst("source")?.attr("src")
-            
-            // Doğrudan kaynak bulunamadıysa, gömülü oynatıcıları kontrol et
-            if (videoUrl.isNullOrBlank()) {
-                // Sayfa kaynaklarında m3u8/mp4 linklerini bul
-                val pageSource = fullSource
-                
-                // Farklı regex desenlerini dene
-                val m3u8Regex = Regex("['\"](https?://[^'\"]*\\.m3u8[^'\"]*)['\"]")
-                val mp4Regex = Regex("['\"](https?://[^'\"]*\\.mp4[^'\"]*)['\"]")
-                val srcRegex = Regex("src=['\"]([^'\"]+)['\"]")
-                val hexRegex = Regex("hexToString\\(['\"]([0-9a-fA-F]+)['\"]\\)")
-                val embedRegex = Regex("src=['\"](.+?)['\"]")
-                
-                val m3u8Match = m3u8Regex.find(pageSource)?.groupValues?.get(1)
-                val mp4Match = mp4Regex.find(pageSource)?.groupValues?.get(1)
-                val embedMatch = embedRegex.find(pageSource)?.groupValues?.get(1)
-                
-                Log.d(this.name, "m3u8 match: $m3u8Match, mp4 match: $mp4Match, embed match: $embedMatch")
-                
-                // Hex kodlanmış URL'yi kontrol et
-                val hexMatches = hexRegex.findAll(pageSource).map { it.groupValues[1] }.toList()
-                for (hexMatch in hexMatches) {
-                    try {
-                        val decodedHex = hexToString(hexMatch)
-                        Log.d(this.name, "Decoded hex: $decodedHex")
-                        if (decodedHex.contains(".m3u8") || decodedHex.contains(".mp4")) {
-                            videoUrl = decodedHex
-                            break
-                        }
-                    } catch (e: Exception) {
-                        Log.e(this.name, "Error decoding hex string: ${e.message}")
-                    }
-                }
-                
-                // Yeni yaklaşım: players.js dosyasını kontrol et - genellikle burada video URL'leri saklanır
-                iframeDoc.select("script[src*=player], script[src*=.js]").forEach { scriptElement ->
-                    val scriptSrc = scriptElement.attr("src")
-                    if (!scriptSrc.isNullOrBlank() && videoUrl.isNullOrBlank()) {
-                        val scriptUrl = when {
-                            scriptSrc.startsWith("//") -> "https:$scriptSrc"
-                            !scriptSrc.startsWith("http") -> {
-                                if (scriptSrc.startsWith("/")) "$mainUrl$scriptSrc" 
-                                else "$mainUrl/$scriptSrc"
-                            }
-                            else -> scriptSrc
-                        }
-                        
-                        try {
-                            val jsContent = app.get(scriptUrl, headers = headers).text
-                            
-                            // Script içeriğinde video URL'sini ara
-                            val jsM3u8 = m3u8Regex.find(jsContent)?.groupValues?.get(1)
-                            val jsMp4 = mp4Regex.find(jsContent)?.groupValues?.get(1)
-                            
-                            if (!jsM3u8.isNullOrBlank() || !jsMp4.isNullOrBlank()) {
-                                videoUrl = jsM3u8 ?: jsMp4
-                                Log.d(this.name, "Found video URL in script: $videoUrl")
-                            }
-                        } catch (e: Exception) {
-                            Log.e(this.name, "Error checking script: ${e.message}")
-                        }
-                    }
-                }
-                
-                if (videoUrl.isNullOrBlank()) {
-                    videoUrl = m3u8Match ?: mp4Match
-                }
-                
-                // Eğer embed video varsa ve video hala bulunamadıysa
-                if (videoUrl.isNullOrBlank()) {
-                    // Tüm iframe'leri dene
-                    val nestedIframes = iframeDoc.select("iframe")
-                    for (nestedIframe in nestedIframes) {
-                        val nestedSrc = nestedIframe.attr("src")
-                        if (!nestedSrc.isNullOrBlank()) {
-                            val nestedUrl = when {
-                                nestedSrc.startsWith("//") -> "https:$nestedSrc"
-                                !nestedSrc.startsWith("http") -> {
-                                    if (nestedSrc.startsWith("/")) "$mainUrl$nestedSrc" 
-                                    else "$mainUrl/$nestedSrc"
-                                }
-                                else -> nestedSrc
-                            }
-                            
-                            try {
-                                Log.d(this.name, "Loading nested iframe: $nestedUrl")
-                                val nestedDoc = app.get(nestedUrl, headers = headers).document
-                                val nestedSource = nestedDoc.outerHtml()
-                                
-                                val nestedM3u8 = m3u8Regex.find(nestedSource)?.groupValues?.get(1)
-                                val nestedMp4 = mp4Regex.find(nestedSource)?.groupValues?.get(1)
-                                
-                                if (!nestedM3u8.isNullOrBlank() || !nestedMp4.isNullOrBlank()) {
-                                    videoUrl = nestedM3u8 ?: nestedMp4
-                                    break
-                                }
-                                
-                                // Ayrıca videofun ve benzer embed servislerini deneyelim
-                                if (nestedUrl.contains("videofun") || nestedUrl.contains("player") || nestedUrl.contains("embed")) {
-                                    val playerJs = nestedDoc.select("script").joinToString("\n") { it.html() }
-                                    val playerM3u8 = m3u8Regex.find(playerJs)?.groupValues?.get(1)
-                                    val playerMp4 = mp4Regex.find(playerJs)?.groupValues?.get(1)
-                                    
-                                    if (!playerM3u8.isNullOrBlank() || !playerMp4.isNullOrBlank()) {
-                                        videoUrl = playerM3u8 ?: playerMp4
-                                        break
-                                    }
-                                    
-                                    // Özel video oynatıcı parametrelerini dene
-                                    if (playerJs.contains("file:") || playerJs.contains("source:")) {
-                                        val fileRegex = Regex("file:\\s*['\"]([^'\"]+)['\"]")
-                                        val sourceRegex = Regex("source:?\\s*['\"]([^'\"]+)['\"]")
-                                        
-                                        val fileMatch = fileRegex.find(playerJs)?.groupValues?.get(1)
-                                        val sourceMatch = sourceRegex.find(playerJs)?.groupValues?.get(1)
-                                        
-                                        if (!fileMatch.isNullOrBlank() || !sourceMatch.isNullOrBlank()) {
-                                            videoUrl = fileMatch ?: sourceMatch
-                                            break
-                                        }
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                Log.e(this.name, "Error loading nested iframe: ${e.message}")
-                            }
-                        }
-                    }
-                    
-                    // Player.js ve benzeri dosyaları kontrol et
-                    val scriptSrcs = iframeDoc.select("script[src]").map { it.attr("src") }
-                    for (scriptSrc in scriptSrcs) {
-                        if (scriptSrc.contains("player") || scriptSrc.contains(".js")) {
-                            val scriptUrl = when {
-                                scriptSrc.startsWith("//") -> "https:$scriptSrc"
-                                !scriptSrc.startsWith("http") -> {
-                                    if (scriptSrc.startsWith("/")) "$mainUrl$scriptSrc" 
-                                    else "$mainUrl/$scriptSrc"
-                                }
-                                else -> scriptSrc
-                            }
-                            
-                            try {
-                                Log.d(this.name, "Checking JS file: $scriptUrl")
-                                val jsContent = app.get(scriptUrl, headers = headers).text
-                                
-                                val jsM3u8 = m3u8Regex.find(jsContent)?.groupValues?.get(1)
-                                val jsMp4 = mp4Regex.find(jsContent)?.groupValues?.get(1)
-                                
-                                if (!jsM3u8.isNullOrBlank() || !jsMp4.isNullOrBlank()) {
-                                    videoUrl = jsM3u8 ?: jsMp4
-                                    break
-                                }
-                            } catch (e: Exception) {
-                                Log.e(this.name, "Error checking JS file: ${e.message}")
-                            }
-                        }
-                    }
-                    
-                    // Diğer src değerlerini kontrol et
-                    if (videoUrl.isNullOrBlank() && !embedMatch.isNullOrBlank()) {
-                        val embedUrl = when {
-                            embedMatch.startsWith("//") -> "https:$embedMatch"
-                            !embedMatch.startsWith("http") -> {
-                                if (embedMatch.startsWith("/")) "$mainUrl$embedMatch" 
-                                else "$mainUrl/$embedMatch"
-                            }
-                            else -> embedMatch
-                        }
-                        
-                        try {
-                            Log.d(this.name, "Loading embed URL: $embedUrl")
-                            val embedDoc = app.get(embedUrl, headers = headers).document
-                            val embedSource = embedDoc.outerHtml()
-                            
-                            videoUrl = m3u8Regex.find(embedSource)?.groupValues?.get(1)
-                                ?: mp4Regex.find(embedSource)?.groupValues?.get(1)
-                            
-                            Log.d(this.name, "Video URL from embed: $videoUrl")
-                        } catch (e: Exception) {
-                            Log.e(this.name, "Error processing embed: ${e.message}")
-                        }
-                    }
-                }
-            }
-            
-            if (!videoUrl.isNullOrBlank()) {
-                Log.d(this.name, "Found video URL: $videoUrl")
-                val isM3u8 = videoUrl.contains(".m3u8")
-                val extractorType = if (isM3u8) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
-                
-                // URL'ye göre kaliteyi belirle
-                var quality = Qualities.Unknown.value
-                when {
-                    videoUrl.contains("1080p") -> quality = Qualities.P1080.value
-                    videoUrl.contains("720p") -> quality = Qualities.P720.value
-                    videoUrl.contains("480p") -> quality = Qualities.P480.value
-                    videoUrl.contains("360p") -> quality = Qualities.P360.value
-                }
-                
-                callback.invoke(
-                    newExtractorLink(source = name, name = name, url = videoUrl, extractorType) {
-                        this.referer = decodedIframe
-                        this.quality = quality
-                    }
-                )
-
-                // Altyazıları çıkart
-                iframeDoc.select("track").forEach { track ->
-                    val subUrl = fixUrlNull(track.attr("src")) ?: return@forEach
-                    val label = track.attr("label").ifEmpty { "Türkçe" }
-                    
-                    Log.d(this.name, "Found subtitle: $label at $subUrl")
-                    subtitleCallback.invoke(
-                        SubtitleFile(
-                            label,
-                            subUrl
-                        )
-                    )
-                }
-                return true
-            } else {
-                Log.e(this.name, "No video URL found in iframe")
-            }
-        } catch (e: Exception) {
-            Log.e(this.name, "Error loading links: ${e.message}")
-            e.printStackTrace()
-        }
-        return false
-    }
-    
-    // Hex string'i ASCII'ye dönüştür
-    private fun hexToString(hex: String): String {
+    // Hex string'i normal string'e çeviren fonksiyon
+    private fun hexToString(hexString: String): String {
         val result = StringBuilder()
         var i = 0
-        while (i < hex.length) {
-            val hexChar = hex.substring(i, i + 2)
-            val decimal = Integer.parseInt(hexChar, 16)
-            result.append(decimal.toChar())
-            i += 2
+        
+        while (i < hexString.length) {
+            // Her iki karakteri bir hex değeri olarak değerlendir
+            if (i + 1 < hexString.length) {
+                try {
+                    val hexPair = hexString.substring(i, i + 2)
+                    val decimal = hexPair.toInt(16)
+                    result.append(decimal.toChar())
+                    i += 2
+                } catch (e: NumberFormatException) {
+                    // Geçersiz hex karakteri, olduğu gibi ekle
+                    result.append(hexString[i])
+                    i++
+                }
+            } else {
+                // Son tek karakteri olduğu gibi ekle
+                result.append(hexString[i])
+                i++
+            }
         }
+        
         return result.toString()
+    }
+    
+    // JavaScript içindeki hex-encoded URL'leri bul
+    private fun findHexEncodedUrls(html: String): List<String> {
+        val foundUrls = mutableListOf<String>()
+        
+        try {
+            // \x ile başlayan hex dizilerini bul (JavaScript hex encoding)
+            val hexPattern = "\\\\x[0-9a-fA-F]{2}".toRegex()
+            
+            // HTML içeriğini var tanımlamalarına göre parçala
+            val splitByVar = html.split("var")
+            
+            // Hex içeren blokları filtrele
+            splitByVar.forEach { block ->
+                if (hexPattern.containsMatchIn(block)) {
+                    // Uzun hex dizileri URL olabilir
+                    val potentialHexString = block.substringAfter("=").substringBefore(";").trim()
+                    
+                    // Birçok hex karakteri içeren string'leri kontrol et
+                    if (potentialHexString.contains("\\x") && potentialHexString.count { it == '\\' } > 5) {
+                        // Temizle ve decode et
+                        val cleanHex = potentialHexString
+                            .replace("\"", "")
+                            .replace("'", "")
+                            .replace("\\\\x", "")  // \\x formatındaki hex karakterlerini temizle
+                            .replace("\\x", "")    // \x formatındaki hex karakterlerini temizle
+                        
+                        try {
+                            val decodedString = hexToString(cleanHex)
+                            if (decodedString.contains("http") || 
+                                decodedString.contains(".mp4") || 
+                                decodedString.contains(".m3u8")) {
+                                foundUrls.add(decodedString)
+                            }
+                        } catch (e: Exception) {
+                            logger.error("Hex decode error: ${e.message}")
+                        }
+                    }
+                }
+            }
+            
+            // hexToString fonksiyonuna yapılan çağrıları ara
+            val hexFunctionCallPattern = "hexToString\\([\"']([0-9a-fA-F]+)[\"']\\)".toRegex()
+            val hexFunctionCalls = hexFunctionCallPattern.findAll(html)
+            
+            hexFunctionCalls.forEach { matchResult ->
+                try {
+                    val hexValue = matchResult.groupValues[1]
+                    val decodedValue = hexToString(hexValue)
+                    if (decodedValue.contains("http") || 
+                        decodedValue.contains(".mp4") || 
+                        decodedValue.contains(".m3u8")) {
+                        foundUrls.add(decodedValue)
+                    }
+                } catch (e: Exception) {
+                    logger.error("Hex function call decode error: ${e.message}")
+                }
+            }
+            
+            // Doğrudan hex string'leri bul
+            val directHexPattern = "[\"']([0-9a-fA-F]{10,})[\"']".toRegex()
+            val directHexMatches = directHexPattern.findAll(html)
+            
+            directHexMatches.forEach { matchResult ->
+                try {
+                    val hexValue = matchResult.groupValues[1]
+                    val decodedValue = hexToString(hexValue)
+                    if (decodedValue.contains("http") || 
+                        decodedValue.contains(".mp4") || 
+                        decodedValue.contains(".m3u8")) {
+                        foundUrls.add(decodedValue)
+                    }
+                } catch (e: Exception) {
+                    logger.error("Direct hex decode error: ${e.message}")
+                }
+            }
+        } catch (e: Exception) {
+            logger.error("Error finding hex URLs: ${e.message}")
+        }
+        
+        // Tekrarlanan URL'leri temizle
+        return foundUrls.distinct()
+    }
+
+    // İframe src değerinin hex-encoded olup olmadığını kontrol et ve deşifre et
+    private fun checkAndDecodeIframeSrc(iframeSrc: String): String {
+        // Eğer normal bir URL ise doğrudan döndür
+        if (iframeSrc.startsWith("http")) {
+            return iframeSrc
+        }
+        
+        // JavaScript:something(...) formatında mı?
+        if (iframeSrc.startsWith("javascript:")) {
+            // Hex-encoded URL içeriyor mu kontrol et
+            val hexMatches = "\\\\x[0-9a-fA-F]{2}".toRegex().findAll(iframeSrc)
+            if (hexMatches.any()) {
+                try {
+                    // JavaScript: kısmını çıkar
+                    val jsContent = iframeSrc.substringAfter("javascript:")
+                    // Hex encode edilmiş kısımları bul
+                    val possibleUrls = findHexEncodedUrls(jsContent)
+                    // HTTP ile başlayan ilk URL'yi döndür
+                    val httpUrl = possibleUrls.firstOrNull { it.startsWith("http") }
+                    if (httpUrl != null) {
+                        logger.debug("Javascript'ten çözülen URL: $httpUrl")
+                        return httpUrl
+                    }
+                } catch (e: Exception) {
+                    logger.error("Javascript iframe src çözülemedi: ${e.message}")
+                }
+            }
+        }
+        
+        // Doğrudan hex-encoded olabilir mi?
+        if (iframeSrc.length > 20 && iframeSrc.all { it.isLetterOrDigit() }) {
+            try {
+                val decoded = hexToString(iframeSrc)
+                if (decoded.startsWith("http")) {
+                    logger.debug("Hex-encoded iframe src çözüldü: $decoded")
+                    return decoded
+                }
+            } catch (e: Exception) {
+                logger.error("Hex iframe src çözülemedi: ${e.message}")
+            }
+        }
+        
+        // Hiçbir şey yapılamadıysa orijinal değeri döndür
+        return iframeSrc
+    }
+
+    // Debug için bilgileri logla
+    private fun logSourceInfo(url: String) {
+        try {
+            logger.debug("URL işleniyor: $url")
+            val response = app.get(url, headers = mapOf(
+                "User-Agent" to USER_AGENT,
+                "Referer" to mainUrl
+            ))
+            logger.debug("HTTP Durum: ${response.code}")
+            logger.debug("Content-Type: ${response.headers["Content-Type"]}")
+            
+            val contentLength = response.headers["Content-Length"]?.toIntOrNull() ?: 0
+            logger.debug("İçerik Boyutu: ${contentLength / 1024} KB")
+            
+            // İlk 100 karakteri logla
+            val previewContent = response.text.take(100).replace("\n", " ")
+            logger.debug("İçerik Önizleme: $previewContent...")
+        } catch (e: Exception) {
+            logger.error("Kaynak bilgisi loglanırken hata: ${e.message}")
+        }
+    }
+    
+    // URL'yi düzelt ve normalleştir
+    private fun normalizeUrl(url: String): String {
+        var fixedUrl = url
+        
+        // URL'nin başında iki slash kaldıysa düzelt
+        if (fixedUrl.startsWith("//")) {
+            fixedUrl = "https:$fixedUrl"
+        }
+        
+        // URL protokol içermiyor mu?
+        if (!fixedUrl.startsWith("http")) {
+            // Eğer root path ise
+            fixedUrl = if (fixedUrl.startsWith("/")) {
+                "${mainUrl}${fixedUrl}"
+            } else {
+                "${mainUrl}/${fixedUrl}"
+            }
+        }
+        
+        return fixedUrl
     }
 }
