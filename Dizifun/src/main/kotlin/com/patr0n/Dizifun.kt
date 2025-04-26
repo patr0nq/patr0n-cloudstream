@@ -252,16 +252,16 @@ class Dizifun : MainAPI() {
         }
         
         // İçerik tipini belirle
-        val type = if (url.contains("/dizi/") || url.contains("/diziler/") || url.contains("sezon") || url.contains("bolum") || 
-                   url.contains("netflix") || url.contains("disney") || url.contains("primevideo") || 
-                   url.contains("blutv") || url.contains("gain") || url.contains("exxen") || 
-                   url.contains("tabii-dizileri") || url.contains("hulu") || url.contains("todtv") || 
-                   url.contains("paramount") || url.contains("unutulmaz") || 
-                   (title?.contains("Sezon", ignoreCase = true) == true && title?.contains("Film", ignoreCase = true) != true)) {
-            Log.d(this.name, "İçerik tipi: Dizi olarak belirlendi (URL: $url)")
+        val type = if (href.contains("/dizi/") || href.contains("/diziler/") || href.contains("sezon") || href.contains("bolum") || 
+                   href.contains("netflix") || href.contains("disney") || href.contains("primevideo") || 
+                   href.contains("blutv") || href.contains("gain") || href.contains("exxen") || 
+                   href.contains("tabii-dizileri") || href.contains("hulu") || href.contains("todtv") || 
+                   href.contains("paramount") || href.contains("unutulmaz") || 
+                   (title.contains("Sezon") && !title.contains("Film"))) {
+            Log.d(this.name, "İçerik tipi: Dizi olarak belirlendi (URL: $href)")
             TvType.TvSeries
         } else {
-            Log.d(this.name, "İçerik tipi: Film olarak belirlendi (URL: $url)")
+            Log.d(this.name, "İçerik tipi: Film olarak belirlendi (URL: $href)")
             TvType.Movie
         }
 
@@ -404,16 +404,16 @@ class Dizifun : MainAPI() {
             Log.d(this.name, "Found description: ${description?.take(50)}...")
             
             // İçerik tipini belirle
-            val type = if (url.contains("/dizi/") || url.contains("/diziler/") || url.contains("sezon") || url.contains("bolum") || 
-                       url.contains("netflix") || url.contains("disney") || url.contains("primevideo") || 
-                       url.contains("blutv") || url.contains("gain") || url.contains("exxen") || 
-                       url.contains("tabii-dizileri") || url.contains("hulu") || url.contains("todtv") || 
-                       url.contains("paramount") || url.contains("unutulmaz") || 
+            val type = if (href.contains("/dizi/") || href.contains("/diziler/") || href.contains("sezon") || href.contains("bolum") || 
+                       href.contains("netflix") || href.contains("disney") || href.contains("primevideo") || 
+                       href.contains("blutv") || href.contains("gain") || href.contains("exxen") || 
+                       href.contains("tabii-dizileri") || href.contains("hulu") || href.contains("todtv") || 
+                       href.contains("paramount") || href.contains("unutulmaz") || 
                        (title?.contains("Sezon", ignoreCase = true) == true && title?.contains("Film", ignoreCase = true) != true)) {
-                Log.d(this.name, "İçerik tipi: Dizi olarak belirlendi (URL: $url)")
+                Log.d(this.name, "İçerik tipi: Dizi olarak belirlendi (URL: $href)")
                 TvType.TvSeries
             } else {
-                Log.d(this.name, "İçerik tipi: Film olarak belirlendi (URL: $url)")
+                Log.d(this.name, "İçerik tipi: Film olarak belirlendi (URL: $href)")
                 TvType.Movie
             }
             Log.d(this.name, "Content type: $type")
@@ -474,23 +474,28 @@ class Dizifun : MainAPI() {
                             // Bölüm numarasını extract et
                             val episodeNum = when {
                                 name.contains("Bölüm", ignoreCase = true) -> {
-                                    val numText = name.substringAfter("Bölüm", ignoreCase = true).trim()
+                                    val lowerName = name.lowercase()
+                                    val numText = lowerName.substringAfter("bölüm").trim()
                                     numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
                                 name.contains("Bölum", ignoreCase = true) -> {
-                                    val numText = name.substringAfter("Bölum", ignoreCase = true).trim()
+                                    val lowerName = name.lowercase()
+                                    val numText = lowerName.substringAfter("bölum").trim()
                                     numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
                                 name.contains("Bolum", ignoreCase = true) -> {
-                                    val numText = name.substringAfter("Bolum", ignoreCase = true).trim()
+                                    val lowerName = name.lowercase()
+                                    val numText = lowerName.substringAfter("bolum").trim()
                                     numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
                                 name.contains("Episode", ignoreCase = true) -> {
-                                    val numText = name.substringAfter("Episode", ignoreCase = true).trim()
+                                    val lowerName = name.lowercase()
+                                    val numText = lowerName.substringAfter("episode").trim()
                                     numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
                                 name.contains("B.", ignoreCase = true) -> {
-                                    val numText = name.substringAfter("B.", ignoreCase = true).trim()
+                                    val lowerName = name.lowercase()
+                                    val numText = lowerName.substringAfter("b.").trim()
                                     numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
                                 name.matches(Regex(".*\\d+.*", RegexOption.IGNORE_CASE)) -> {
@@ -560,23 +565,28 @@ class Dizifun : MainAPI() {
                             // Bölüm numarasını extract et
                             val episodeNum = when {
                                 name.contains("Bölüm", ignoreCase = true) -> {
-                                    val numText = name.substringAfter("Bölüm", ignoreCase = true).trim()
+                                    val lowerName = name.lowercase()
+                                    val numText = lowerName.substringAfter("bölüm").trim()
                                     numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
                                 name.contains("Bölum", ignoreCase = true) -> {
-                                    val numText = name.substringAfter("Bölum", ignoreCase = true).trim()
+                                    val lowerName = name.lowercase()
+                                    val numText = lowerName.substringAfter("bölum").trim()
                                     numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
                                 name.contains("Bolum", ignoreCase = true) -> {
-                                    val numText = name.substringAfter("Bolum", ignoreCase = true).trim()
+                                    val lowerName = name.lowercase()
+                                    val numText = lowerName.substringAfter("bolum").trim()
                                     numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
                                 name.contains("Episode", ignoreCase = true) -> {
-                                    val numText = name.substringAfter("Episode", ignoreCase = true).trim()
+                                    val lowerName = name.lowercase()
+                                    val numText = lowerName.substringAfter("episode").trim()
                                     numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
                                 name.contains("B.", ignoreCase = true) -> {
-                                    val numText = name.substringAfter("B.", ignoreCase = true).trim()
+                                    val lowerName = name.lowercase()
+                                    val numText = lowerName.substringAfter("b.").trim()
                                     numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
                                 href.contains("bolum", ignoreCase = true) || href.contains("episode", ignoreCase = true) -> {
