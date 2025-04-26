@@ -17,12 +17,18 @@ class Dizifun : MainAPI() {
     override val supportedTypes       = setOf(TvType.TvSeries, TvType.Movie)
 
     override val mainPage = mainPageOf(
-        "${mainUrl}/diziler"           to "Tüm Diziler",
-        "${mainUrl}/yabanci-diziler"   to "Yabancı Diziler",
-        "${mainUrl}/yerli-diziler"     to "Yerli Diziler",
-        "${mainUrl}/kore-dizileri"     to "Kore Dizileri",
-        "${mainUrl}/netflix-dizileri"  to "Netflix Dizileri",
-        "${mainUrl}/filmler"          to "Filmler"
+        "${mainUrl}/netflix"           to "Netflix Dizileri",
+        "${mainUrl}/exxen"            to "Exxen Dizileri",
+        "${mainUrl}/disney"           to "Disney+ Dizileri",
+        "${mainUrl}/tabii-dizileri"   to "Tabii Dizileri",
+        "${mainUrl}/blutv"            to "BluTV Dizileri",
+        "${mainUrl}/todtv"            to "TodTV Dizileri",
+        "${mainUrl}/gain"             to "Gain Dizileri",
+        "${mainUrl}/hulu"             to "Hulu Dizileri",
+        "${mainUrl}/primevideo"       to "PrimeVideo Dizileri",
+        "${mainUrl}/hbomax"           to "HboMax Dizileri",
+        "${mainUrl}/paramount"        to "Paramount+ Dizileri",
+        "${mainUrl}/unutulmaz"        to "Unutulmaz Diziler"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
@@ -33,9 +39,9 @@ class Dizifun : MainAPI() {
     }
 
     private fun Element.diziler(): SearchResponse? {
-        val title     = this.selectFirst("div.movie-title h3")?.text()?.trim() ?: return null
+        val title     = this.selectFirst("div.name a")?.text()?.trim() ?: return null
         val href      = fixUrlNull(this.selectFirst("a")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
+        val posterUrl = fixUrlNull(this.selectFirst("div.img img")?.attr("src"))
 
         return if (href.contains("/film/")) {
             newMovieSearchResponse(title, href, TvType.Movie) { this.posterUrl = posterUrl }
@@ -53,13 +59,13 @@ class Dizifun : MainAPI() {
     override suspend fun load(url: String): LoadResponse? {
         val document = app.get(url).document
 
-        val title       = document.selectFirst("div.movie-title h1")?.text()?.trim() ?: return null
-        val poster      = fixUrlNull(document.selectFirst("div.movie-poster img")?.attr("src"))
-        val year        = document.selectFirst("div.movie-info span:contains(Yapım Yılı)")?.nextElementSibling()?.text()?.toIntOrNull()
-        val description = document.selectFirst("div.movie-description")?.text()?.trim()
-        val tags        = document.select("div.movie-info span:contains(Tür) + a").map { it.text().trim() }
-        val rating      = document.selectFirst("div.movie-info span:contains(IMDB)")?.nextElementSibling()?.text()?.toRatingInt()
-        val actors      = document.selectFirst("div.movie-info span:contains(Oyuncular)")?.nextElementSibling()?.text()?.split(", ")?.map { Actor(it.trim()) }
+        val title       = document.selectFirst("h1.film")?.text()?.trim() ?: return null
+        val poster      = fixUrlNull(document.selectFirst("[property='og:image']")?.attr("content"))
+        val year        = document.selectFirst("li.release")?.text()?.trim()?.let { Regex("(\\d+)").find(it)?.groupValues?.get(1)?.toIntOrNull() }
+        val description = document.selectFirst("div.description")?.text()?.trim()
+        val tags        = document.select("ul.post-categories a").map { it.text().trim() }
+        val rating      = document.selectFirst("div.imdb-count")?.text()?.trim()?.split(" ")?.first()?.toRatingInt()
+        val actors      = document.select("[href*='oyuncular']").map { Actor(it.text().trim()) }
 
         return if (url.contains("/film/")) {
             newMovieLoadResponse(title, url, TvType.Movie, url) {
@@ -71,8 +77,8 @@ class Dizifun : MainAPI() {
                 addActors(actors)
             }
         } else {
-            val episodes = document.select("div.episode-item").mapNotNull {
-                val epName    = it.selectFirst("span.episode-title")?.text()?.trim() ?: return@mapNotNull null
+            val episodes = document.select("div.parts-middle").mapNotNull {
+                val epName    = it.selectFirst("span.episodetitle")?.text()?.trim() ?: return@mapNotNull null
                 val epHref    = fixUrlNull(it.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
                 val epEpisode = Regex("(\\d+)\\.Bölüm").find(epName)?.groupValues?.get(1)?.toIntOrNull()
                 val epSeason  = Regex("(\\d+)\\.Sezon").find(epName)?.groupValues?.get(1)?.toIntOrNull() ?: 1
