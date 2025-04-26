@@ -126,16 +126,17 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=www.dizifun2.com&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 32902,
+        "fileSize": 35470,
         "status": 1,
         "language": "tr",
         "authors": [
             "patr0n"
         ],
         "tvTypes": [
-            "Movie"
+            "Movie",
+            "TvSeries"
         ],
-        "version": 0,
+        "version": 1,
         "internalName": "Dizifun",
         "description": "Dizifun.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/Dizifun.cs3",
