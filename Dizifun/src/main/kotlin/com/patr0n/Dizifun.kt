@@ -576,10 +576,11 @@ class Dizifun : MainAPI() {
                                         this.name,
                                         "Direct (Video Tag)",
                                         normalizedSourceUrl,
-                                        url,
-                                        Qualities.Unknown.value,
-                                        normalizedSourceUrl.contains(".m3u8")
-                                    )
+                                        if (normalizedSourceUrl.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
+                                    ) {
+                                        this.referer = url
+                                        this.quality = Qualities.Unknown.value
+                                    }
                                 )
                             }
                         }
@@ -616,10 +617,11 @@ class Dizifun : MainAPI() {
                                 this.name,
                                 if (normalizedVideoUrl.contains(".m3u8")) "${sourceName} HLS" else sourceName,
                                 normalizedVideoUrl,
-                                normalizedIframeSrc,
-                                quality,
-                                normalizedVideoUrl.contains(".m3u8")
-                            )
+                                if (normalizedVideoUrl.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
+                            ) {
+                                this.referer = normalizedIframeSrc
+                                this.quality = quality
+                            }
                         )
                     }
                     
@@ -668,10 +670,11 @@ class Dizifun : MainAPI() {
                                             this.name,
                                             if (normalizedAltVideoUrl.contains(".m3u8")) "${sourceName} HLS" else sourceName,
                                             normalizedAltVideoUrl,
-                                            normalizedEmbedUrl,
-                                            quality,
-                                            normalizedAltVideoUrl.contains(".m3u8")
-                                        )
+                                            if (normalizedAltVideoUrl.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
+                                        ) {
+                                            this.referer = normalizedEmbedUrl
+                                            this.quality = quality
+                                        }
                                     )
                                 }
                             } catch (e: Exception) {
@@ -714,10 +717,11 @@ class Dizifun : MainAPI() {
                                 this.name,
                                 "Direct (Video Tag)",
                                 normalizedSourceUrl,
-                                url,
-                                Qualities.Unknown.value,
-                                normalizedSourceUrl.contains(".m3u8")
-                            )
+                                if (normalizedSourceUrl.contains(".m3u8")) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
+                            ) {
+                                this.referer = url
+                                this.quality = Qualities.Unknown.value
+                            }
                         )
                     }
                 } else {
