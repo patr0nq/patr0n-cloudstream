@@ -40,14 +40,20 @@ class Dizifun : MainAPI() {
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
 
-        val document = app.get(request.data, headers=headers).document
+        val url = if (page > 1) {
+            "${request.data}/page/${page}"
+        } else {
+            request.data
+        }
+
+        val document = app.get(url, headers=headers).document
         val home     = document.select(".uk-width-medium-1-3.uk-width-large-1-6.uk-margin-bottom").mapNotNull { it.diziler() }
 
         return newHomePageResponse(request.name, home)
     }
 
     private fun Element.diziler(): SearchResponse? {
-        val title     = this.selectFirst(".uk-panel-title.uk-text-truncate")?.text()?.trim() ?: return null
+        val title     = this.selectFirst(".uk-panel-title.uk-text-truncate")?.text()?.substringBefore(" izle")?.trim() ?: return null
         val href      = fixUrlNull(this.selectFirst(".uk-position-cover")?.attr("href")) ?: return null
         val posterUrl = fixUrlNull(this.selectFirst(".uk-overlay img")?.attr("src"))
 
@@ -75,13 +81,14 @@ class Dizifun : MainAPI() {
 
         val document = app.get(url, headers=headers).document
 
-        val title       = document.selectFirst("h1.film")?.text()?.trim() ?: return null
+        val title       = document.selectFirst("h1.film")?.text()?.substringBefore(" izle")?.trim() ?: return null
         val poster      = fixUrlNull(document.selectFirst("[property='og:image']")?.attr("content"))
         val year        = document.selectFirst("li.release")?.text()?.trim()?.let { Regex("(\\d+)").find(it)?.groupValues?.get(1)?.toIntOrNull() }
         val description = document.selectFirst("div.description")?.text()?.trim()
         val tags        = document.select("ul.post-categories a").map { it.text().trim() }
         val rating      = document.selectFirst("div.imdb-count")?.text()?.trim()?.split(" ")?.first()?.toRatingInt()
         val actors      = document.select("[href*='oyuncular']").map { Actor(it.text().trim()) }
+        val duration    = document.selectFirst("li.duration")?.text()?.trim()?.let { Regex("(\\d+)").find(it)?.groupValues?.get(1)?.toIntOrNull() }
 
         return if (url.contains("/film/")) {
             newMovieLoadResponse(title, url, TvType.Movie, url) {
@@ -90,6 +97,7 @@ class Dizifun : MainAPI() {
                 this.plot      = description
                 this.tags      = tags
                 this.rating    = rating
+                this.duration  = duration
                 addActors(actors)
             }
         } else {
