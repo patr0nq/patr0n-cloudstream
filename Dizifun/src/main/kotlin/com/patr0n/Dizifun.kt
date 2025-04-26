@@ -103,11 +103,9 @@ class Dizifun : MainAPI() {
         val tags = document.select("div.genres a")?.map { it.text() }
         val recommendations = document.select("div.related-items div.uk-overlay")?.mapNotNull { it.toRecommendationResult() }
         val actors = document.select("div.actors-container div.actor-card")?.mapNotNull {
-            ActorData(
-                actor = Actor(
-                    it.select("span.actor-name")?.text() ?: return@mapNotNull null,
-                    it.select("img")?.attr("src")
-                )
+            Actor(
+                it.select("span.actor-name")?.text() ?: return@mapNotNull null,
+                it.select("img")?.attr("src")
             )
         }
         val trailer = document.select("iframe")?.attr("src")?.let { 
@@ -117,24 +115,38 @@ class Dizifun : MainAPI() {
         val episodes = if (type == TvType.TvSeries) {
             document.select("div.episode-button").mapNotNull {
                 val episode = it.text().substringAfter("Bölüm").toIntOrNull() ?: return@mapNotNull null
-                newEpisode(it.parent()?.attr("href") ?: return@mapNotNull null) {
+                val data = it.parent()?.attr("href") ?: return@mapNotNull null
+                newEpisode(data) {
                     this.episode = episode
                     this.name = "Bölüm $episode"
                 }
             }
         } else null
 
-        return newMovieLoadResponse(title, url, type, url) {
-            this.posterUrl = poster
-            this.year = year
-            this.plot = description
-            this.rating = rating
-            this.duration = duration
-            this.tags = tags
-            this.recommendations = recommendations
-            if (type == TvType.TvSeries) this.episodes = episodes
-            addActors(actors)
-            addTrailer(trailer)
+        return if (type == TvType.TvSeries) {
+            newTvSeriesLoadResponse(title, url, type, episodes ?: emptyList()) {
+                this.posterUrl = poster
+                this.year = year
+                this.plot = description
+                this.rating = rating
+                this.duration = duration
+                this.tags = tags
+                this.recommendations = recommendations
+                addActors(actors ?: emptyList())
+                addTrailer(trailer)
+            }
+        } else {
+            newMovieLoadResponse(title, url, type, url) {
+                this.posterUrl = poster
+                this.year = year
+                this.plot = description
+                this.rating = rating
+                this.duration = duration
+                this.tags = tags
+                this.recommendations = recommendations
+                addActors(actors ?: emptyList())
+                addTrailer(trailer)
+            }
         }
     }
 
@@ -161,7 +173,6 @@ class Dizifun : MainAPI() {
             val videoUrl = document.select("iframe")?.attr("src")
             
             if (!videoUrl.isNullOrBlank()) {
-                // Video kalitesini belirle
                 val quality = when {
                     videoUrl.contains("1080p") -> Qualities.P1080.value
                     videoUrl.contains("720p") -> Qualities.P720.value
@@ -169,7 +180,6 @@ class Dizifun : MainAPI() {
                     else -> Qualities.Unknown.value
                 }
 
-                // Video kaynağını belirle
                 val source = when {
                     videoUrl.contains("youtube") -> "YouTube"
                     videoUrl.contains("vimeo") -> "Vimeo"
@@ -177,7 +187,7 @@ class Dizifun : MainAPI() {
                 }
 
                 callback.invoke(
-                    ExtractorLink(
+                    newExtractorLink(
                         source = name,
                         name = source,
                         url = videoUrl,
@@ -187,7 +197,6 @@ class Dizifun : MainAPI() {
                     )
                 )
 
-                // Altyazı varsa ekle
                 document.select("track")?.forEach { track ->
                     val subUrl = track.attr("src")
                     if (subUrl.isNotBlank()) {
