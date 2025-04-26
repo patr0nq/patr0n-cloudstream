@@ -101,7 +101,7 @@ class Dizifun : MainAPI() {
                 addActors(actors)
             }
         } else {
-            val episodes = document.select("div.parts-middle").mapNotNull {
+            val episodes = document.select("div.episode-box").mapNotNull {
                 val epName    = it.selectFirst("a")?.text()?.trim() ?: return@mapNotNull null
                 val epHref    = fixUrlNull(it.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
                 val epEpisode = Regex("(\\d+)\\.Bölüm").find(epName)?.groupValues?.get(1)?.toIntOrNull()
@@ -113,6 +113,8 @@ class Dizifun : MainAPI() {
                     this.episode = epEpisode
                 }
             }
+
+            val iframes = document.select("div.player-embed iframe").mapNotNull { it.attr("src") }
 
             newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
                 this.posterUrl = poster
