@@ -34,8 +34,7 @@ class Dizifun : MainAPI() {
         "${mainUrl}/paramount"          to "Paramount+ Dizileri",
         "${mainUrl}/unutulmaz"          to "Unutulmaz Diziler",
         "${mainUrl}/category/filmler"   to "Filmler",
-        "${mainUrl}/category/diziler"  to "Güncel Diziler"
-        "${mainUrl}/category/filmler"   to "Filmler"
+        "${mainUrl}/category/diziler"   to "Güncel Diziler"
     )
 
     private fun Element.diziler(): SearchResponse? {
@@ -85,51 +84,16 @@ class Dizifun : MainAPI() {
         val document = app.get(url, headers=headers).document
         
         // Farklı kapsayıcıları destekle (.uk-width-medium-1-3.uk-width-large-1-6 ve diğer muhtemel sınıflar)
-        val homeItems = document.select(".uk-width-medium-1-3.uk-width-large-1-6.uk-margin-bottom, div.uk-panel-box").mapNotNull { it.diziler() }
+        val homeItems = document.select(".uk-width-medium-1-3.uk-width-large-1-6.uk-margin-bottom, div.uk-panel-box").mapNotNull { element: Element -> element.diziler() }
         
         if (homeItems.isEmpty()) {
             Log.d("DZF", "No content found on page, trying alternate selectors")
             // Fallback selectors - siteye özgü içerik kutularını bul
-            val altItems = document.select("article, .uk-panel, div[class*='dizi-box'], div[class*='film-box']").mapNotNull { it.diziler() }
+            val altItems = document.select("article, .uk-panel, div[class*='dizi-box'], div[class*='film-box']").mapNotNull { element: Element -> element.diziler() }
             return newHomePageResponse(request.name, altItems)
         }
 
         return newHomePageResponse(request.name, homeItems)
-    }
-
-    private fun Element.diziler(): SearchResponse? {
-        try {
-            // Farklı başlık seçicilerini dene
-            val title = this.selectFirst(".uk-panel-title.uk-text-truncate, h3, .film-name, .dizi-name, a[title], .uk-h3")
-                ?.text()?.substringBefore(" izle")?.trim()
-                ?: return null
-
-            // Farklı bağlantı seçicilerini dene
-            val href = fixUrlNull(this.selectFirst(".uk-position-cover, a[href], a")?.attr("href")) ?: return null
-            
-            // Farklı resim seçicilerini dene
-            val posterUrl = fixUrlNull(this.selectFirst("img[data-src], .uk-overlay img, .film-image img, .dizi-image img")?.attr("data-src"))
-            
-            // Yıl bilgisini bulmaya çalış
-            val year = this.selectFirst(".release, span.year, div.year")?.text()?.trim()?.let { 
-                Regex("(\\d{4})(\\s*[-–]\\s*(\\d{4}))?").find(it)?.groupValues?.get(1)?.toIntOrNull() 
-            }
-
-            return if (href.contains("/film/") || href.contains("/movie/") || href.contains("/filmler/")) {
-                newMovieSearchResponse(title, href, TvType.Movie) { 
-                    this.posterUrl = posterUrl
-                    this.year = year
-                }
-            } else {
-                newTvSeriesSearchResponse(title, href, TvType.TvSeries) { 
-                    this.posterUrl = posterUrl 
-                    this.year = year
-                }
-            }
-        } catch (e: Exception) {
-            Log.e("DZF", "Error parsing search item", e)
-            return null
-        }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
@@ -141,12 +105,12 @@ class Dizifun : MainAPI() {
         val document = app.get("${mainUrl}/?s=${query}", headers=headers).document
         
         // Ana arama sonuçlarını dene
-        val searchResults = document.select(".uk-width-medium-1-3.uk-width-large-1-6.uk-margin-bottom, div.uk-panel-box, article, div[class*='dizi-box'], div[class*='film-box']").mapNotNull { it.diziler() }
+        val searchResults = document.select(".uk-width-medium-1-3.uk-width-large-1-6.uk-margin-bottom, div.uk-panel-box, article, div[class*='dizi-box'], div[class*='film-box']").mapNotNull { element: Element -> element.diziler() }
         
         if (searchResults.isEmpty()) {
             Log.d("DZF", "No search results found, trying alternate selectors")
             // Alternatif seçicileri dene
-            return document.select("article, .uk-panel, div[class*='item']").mapNotNull { it.diziler() }
+            return document.select("article, .uk-panel, div[class*='item']").mapNotNull { element: Element -> element.diziler() }
         }
         
         return searchResults
@@ -283,27 +247,27 @@ class Dizifun : MainAPI() {
             val document = app.get(data, headers=headers).document
 
             // Farklı iframe seçicilerini dene
-            val iframes = document.select("div.player-embed iframe, div.video-player iframe, iframe[src*='player'], iframe[data-src], iframe, div.embed-responsive iframe").mapNotNull { 
-                val src = it.attr("src")
-                val dataSrc = it.attr("data-src")
+            val iframes = document.select("div.player-embed iframe, div.video-player iframe, iframe[src*='player'], iframe[data-src], iframe, div.embed-responsive iframe").mapNotNull { element: Element -> 
+                val src = element.attr("src")
+                val dataSrc = element.attr("data-src")
                 fixUrlNull(if (src.isNotBlank()) src else dataSrc)
             }
 
             if (iframes.isEmpty()) {
                 Log.e("DZF", "No iframes found on page, trying to find direct source links")
                 // İframe bulunamazsa, doğrudan kaynak linkleri aramayı dene
-                val sources = document.select("source[src], video[src]").mapNotNull { fixUrlNull(it.attr("src")) }
+                val sources = document.select("source[src], video[src]").mapNotNull { element: Element -> fixUrlNull(element.attr("src")) }
                 
-                sources.forEach { source ->
+                sources.forEach { source: String ->
                     Log.d("DZF", "Found direct source: $source")
                     callback.invoke(
-                        ExtractorLink(
-                            name,
-                            "Direct",
-                            source,
-                            data,
-                            Qualities.Unknown.value,
-                            source.contains(".m3u8")
+                        newExtractorLink(
+                            source = name,
+                            name = "Direct",
+                            url = source,
+                            referer = data,
+                            quality = Qualities.Unknown.value,
+                            isM3u8 = source.contains(".m3u8")
                         )
                     )
                 }
@@ -312,7 +276,7 @@ class Dizifun : MainAPI() {
             }
 
             var success = false
-            iframes.forEach { iframe ->
+            iframes.forEach { iframe: String ->
                 Log.d("DZF", "Processing iframe: $iframe")
                 try {
                     if (loadExtractor(iframe, data, subtitleCallback, callback)) {
@@ -323,18 +287,18 @@ class Dizifun : MainAPI() {
                         // Extractor bulunamazsa, iframe içeriğini kontrol et
                         try {
                             val iframeContent = app.get(iframe, headers = headers).document
-                            val directLinks = iframeContent.select("source[src], video[src]").mapNotNull { fixUrlNull(it.attr("src")) }
+                            val directLinks = iframeContent.select("source[src], video[src]").mapNotNull { element: Element -> fixUrlNull(element.attr("src")) }
                             
-                            directLinks.forEach { link ->
+                            directLinks.forEach { link: String ->
                                 Log.d("DZF", "Found direct link in iframe: $link")
                                 callback.invoke(
-                                    ExtractorLink(
-                                        name,
-                                        "Direct",
-                                        link,
-                                        iframe,
-                                        Qualities.Unknown.value,
-                                        link.contains(".m3u8")
+                                    newExtractorLink(
+                                        source = name,
+                                        name = "Direct",
+                                        url = link,
+                                        referer = iframe,
+                                        quality = Qualities.Unknown.value,
+                                        isM3u8 = link.contains(".m3u8")
                                     )
                                 )
                                 success = true
