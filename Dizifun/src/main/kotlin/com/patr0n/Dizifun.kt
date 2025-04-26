@@ -251,11 +251,17 @@ class Dizifun : MainAPI() {
             else -> null
         }
         
-        // URL'ye göre içerik tipini belirle
-        val type = if (href.contains("/dizi/") || href.contains("sezon") || href.contains("bolum") ||
-                     (title.contains("Sezon") && !title.contains("Film"))) {
+        // İçerik tipini belirle
+        val type = if (url.contains("/dizi/") || url.contains("/diziler/") || url.contains("sezon") || url.contains("bolum") || 
+                   url.contains("netflix") || url.contains("disney") || url.contains("primevideo") || 
+                   url.contains("blutv") || url.contains("gain") || url.contains("exxen") || 
+                   url.contains("tabii-dizileri") || url.contains("hulu") || url.contains("todtv") || 
+                   url.contains("paramount") || url.contains("unutulmaz") || 
+                   (title?.contains("Sezon", ignoreCase = true) == true && title?.contains("Film", ignoreCase = true) != true)) {
+            Log.d(this.name, "İçerik tipi: Dizi olarak belirlendi (URL: $url)")
             TvType.TvSeries
         } else {
+            Log.d(this.name, "İçerik tipi: Film olarak belirlendi (URL: $url)")
             TvType.Movie
         }
 
@@ -398,9 +404,16 @@ class Dizifun : MainAPI() {
             Log.d(this.name, "Found description: ${description?.take(50)}...")
             
             // İçerik tipini belirle
-            val type = if (url.contains("/dizi/") || url.contains("sezon") || url.contains("bolum")) {
+            val type = if (url.contains("/dizi/") || url.contains("/diziler/") || url.contains("sezon") || url.contains("bolum") || 
+                       url.contains("netflix") || url.contains("disney") || url.contains("primevideo") || 
+                       url.contains("blutv") || url.contains("gain") || url.contains("exxen") || 
+                       url.contains("tabii-dizileri") || url.contains("hulu") || url.contains("todtv") || 
+                       url.contains("paramount") || url.contains("unutulmaz") || 
+                       (title?.contains("Sezon", ignoreCase = true) == true && title?.contains("Film", ignoreCase = true) != true)) {
+                Log.d(this.name, "İçerik tipi: Dizi olarak belirlendi (URL: $url)")
                 TvType.TvSeries
             } else {
+                Log.d(this.name, "İçerik tipi: Film olarak belirlendi (URL: $url)")
                 TvType.Movie
             }
             Log.d(this.name, "Content type: $type")
@@ -438,7 +451,9 @@ class Dizifun : MainAPI() {
                 val allEpisodes = ArrayList<Episode>()
                 
                 // Season/Tab kutularını bul
-                val seasonTabs = document.select("div.tabcontent2, div.seasons, div.episodes-container")
+                val seasonTabs = document.select("div.tabcontent2, div.seasons, div.episodes-container, div.episodeitem, div.episodelist, div.bolumler, div.seasons-bk")
+                Log.d(this.name, "Sezon tabları: ${seasonTabs.size}")
+                
                 if (seasonTabs.isNotEmpty()) {
                     Log.d(this.name, "Found ${seasonTabs.size} season tabs")
                     seasonTabs.forEach { seasonTab ->
@@ -447,76 +462,171 @@ class Dizifun : MainAPI() {
                             ?: seasonTabs.indexOf(seasonTab) + 1
                         
                         // Her sezon tab'ındaki bölümleri bul
-                        val episodeElements = seasonTab.select("div.bolumtitle a, a[href*=episode], a.episode-button, a[href*=bolum], div.episode-button")
+                        val episodeElements = seasonTab.select("div.bolumtitle a, a[href*=episode], a.episode-button, a[href*=bolum], div.episode-button, li.episode a, a.btn-episode, a[href*=izle], a.dizi-parts")
                         Log.d(this.name, "Found ${episodeElements.size} episodes in season $seasonId")
                         
                         episodeElements.forEach { episodeElement ->
                             val name = episodeElement.text().trim()
                             val href = episodeElement.attr("href")
                             
-                            // Bölüm numarasını extrakt et
+                            Log.d(this.name, "Episode element: name=$name, href=$href")
+                            
+                            // Bölüm numarasını extract et
                             val episodeNum = when {
-                                name.contains("Bölüm") -> {
-                                    val numText = name.substringAfter("Bölüm").trim()
+                                name.contains("Bölüm", ignoreCase = true) -> {
+                                    val numText = name.substringAfter("Bölüm", ignoreCase = true).trim()
                                     numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
-                                name.contains("Bölum") -> {
-                                    val numText = name.substringAfter("Bölum").trim()
+                                name.contains("Bölum", ignoreCase = true) -> {
+                                    val numText = name.substringAfter("Bölum", ignoreCase = true).trim()
                                     numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
-                                else -> name.replace(Regex("[^0-9]"), "").toIntOrNull()
-                            } ?: return@forEach
+                                name.contains("Bolum", ignoreCase = true) -> {
+                                    val numText = name.substringAfter("Bolum", ignoreCase = true).trim()
+                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                }
+                                name.contains("Episode", ignoreCase = true) -> {
+                                    val numText = name.substringAfter("Episode", ignoreCase = true).trim()
+                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                }
+                                name.contains("B.", ignoreCase = true) -> {
+                                    val numText = name.substringAfter("B.", ignoreCase = true).trim()
+                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                }
+                                name.matches(Regex(".*\\d+.*", RegexOption.IGNORE_CASE)) -> {
+                                    name.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                }
+                                else -> 1 // Bölüm numarası bulunamazsa 1 atanır
+                            }
+                            
+                            Log.d(this.name, "Extracted episode number: $episodeNum")
                             
                             // URL'yi fix
-                            val data = fixUrlNull(href) ?: return@forEach
-                            val fullUrl = if (data.startsWith("?")) url + data else data
+                            val data = if (href.isNotBlank()) {
+                                fixUrlNull(href)
+                            } else {
+                                null
+                            }
+                            
+                            if (data == null) {
+                                Log.d(this.name, "Skipping episode with invalid URL")
+                                return@forEach
+                            }
+                            
+                            val fullUrl = if (data.startsWith("?") || data.startsWith("/")) {
+                                if (data.startsWith("?")) url + data else mainUrl + data
+                            } else {
+                                data
+                            }
+                            
+                            Log.d(this.name, "Adding episode: name=$name, season=$seasonId, episode=$episodeNum, url=$fullUrl")
                             
                             allEpisodes.add(
                                 newEpisode(fullUrl) {
                                     this.name = name
                                     this.season = seasonId
-                                    this.episode = episodeNum
+                                    this.episode = episodeNum ?: 1
                                 }
                             )
                         }
                     }
                 } else {
                     // Alternatif bölüm seçicisi - sezon tabları yoksa
-                    val episodeElements = document.select("div.episode-button, div.bolumtitle a, a.episode-button, div.episodes div, div.episodes a, a[href*=bolum]")
-                    Log.d(this.name, "Found ${episodeElements.size} episode elements")
+                    val episodeElements = document.select("div.episode-button, div.bolumtitle a, a.episode-button, div.episodes div, div.episodes a, a[href*=bolum], li.episode a, a.btn-episode, a[href*=izle], a.dizi-parts, a[href*=sezon], a[href*=season]")
+                    Log.d(this.name, "Found ${episodeElements.size} episode elements (alternative selector)")
                     
                     episodeElements.forEach { episodeElement ->
                         val name = episodeElement.text().trim()
-                        if (name.contains("Bölüm") || name.contains("Bölum") || name.matches(Regex(".*\\d+.*"))) {
+                        val href = episodeElement.attr("href")
+                        
+                        Log.d(this.name, "Alternative episode element: name=$name, href=$href")
+                        
+                        if (name.isNotBlank() && href.isNotBlank()) {
+                            // Sezon numarasını bulmaya çalış
+                            val seasonNum = when {
+                                href.contains("sezon", ignoreCase = true) || href.contains("season", ignoreCase = true) -> {
+                                    val seasonRegex = Regex("(?:sezon|season)[\\s-]*([0-9]+)", RegexOption.IGNORE_CASE)
+                                    val matchResult = seasonRegex.find(href)
+                                    matchResult?.groupValues?.get(1)?.toIntOrNull() ?: 1
+                                }
+                                name.contains("sezon", ignoreCase = true) || name.contains("season", ignoreCase = true) -> {
+                                    val seasonRegex = Regex("(?:sezon|season)[\\s-]*([0-9]+)", RegexOption.IGNORE_CASE)
+                                    val matchResult = seasonRegex.find(name)
+                                    matchResult?.groupValues?.get(1)?.toIntOrNull() ?: 1
+                                }
+                                else -> 1
+                            }
+                            
+                            // Bölüm numarasını extract et
                             val episodeNum = when {
-                                name.contains("Bölüm") -> {
-                                    val numText = name.substringAfter("Bölüm").trim()
+                                name.contains("Bölüm", ignoreCase = true) -> {
+                                    val numText = name.substringAfter("Bölüm", ignoreCase = true).trim()
                                     numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
-                                name.contains("Bölum") -> {
-                                    val numText = name.substringAfter("Bölum").trim()
+                                name.contains("Bölum", ignoreCase = true) -> {
+                                    val numText = name.substringAfter("Bölum", ignoreCase = true).trim()
                                     numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
-                                else -> name.replace(Regex("[^0-9]"), "").toIntOrNull()
-                            } ?: return@forEach
-                            
-                            val href = episodeElement.attr("href")
-                            val parent = episodeElement.parent()
-                            val data = if (href.isNotBlank()) {
-                                fixUrlNull(href)
-                            } else {
-                                fixUrlNull(parent?.attr("href"))
-                            } ?: return@forEach
-                            
-                            val fullUrl = if (data.startsWith("?")) url + data else data
-                            
-                            allEpisodes.add(
-                                newEpisode(fullUrl) {
-                                    this.name = name
-                                    this.episode = episodeNum
+                                name.contains("Bolum", ignoreCase = true) -> {
+                                    val numText = name.substringAfter("Bolum", ignoreCase = true).trim()
+                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
                                 }
-                            )
+                                name.contains("Episode", ignoreCase = true) -> {
+                                    val numText = name.substringAfter("Episode", ignoreCase = true).trim()
+                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                }
+                                name.contains("B.", ignoreCase = true) -> {
+                                    val numText = name.substringAfter("B.", ignoreCase = true).trim()
+                                    numText.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                }
+                                href.contains("bolum", ignoreCase = true) || href.contains("episode", ignoreCase = true) -> {
+                                    val episodeRegex = Regex("(?:bolum|episode)[\\s-]*([0-9]+)", RegexOption.IGNORE_CASE)
+                                    val matchResult = episodeRegex.find(href)
+                                    matchResult?.groupValues?.get(1)?.toIntOrNull()
+                                }
+                                name.matches(Regex(".*\\d+.*", RegexOption.IGNORE_CASE)) -> {
+                                    name.replace(Regex("[^0-9]"), "").toIntOrNull()
+                                }
+                                href.matches(Regex(".*\\d+.*", RegexOption.IGNORE_CASE)) -> {
+                                    // URL'den sayıyı çıkar - son rakam genellikle bölüm numarasıdır
+                                    val numbers = Regex("\\d+").findAll(href).map { it.value.toInt() }.toList()
+                                    numbers.lastOrNull()
+                                }
+                                else -> 1 // Bölüm numarası bulunamazsa 1 atanır
+                            }
+                            
+                            // URL'yi fix
+                            val data = fixUrlNull(href)
+                            if (data != null) {
+                                val fullUrl = if (data.startsWith("?") || data.startsWith("/")) {
+                                    if (data.startsWith("?")) url + data else mainUrl + data
+                                } else {
+                                    data
+                                }
+                                
+                                Log.d(this.name, "Adding alternative episode: name=$name, season=$seasonNum, episode=$episodeNum, url=$fullUrl")
+                                
+                                allEpisodes.add(
+                                    newEpisode(fullUrl) {
+                                        this.name = name
+                                        this.season = seasonNum
+                                        this.episode = episodeNum ?: 1
+                                    }
+                                )
+                            }
                         }
+                    }
+                    
+                    // Eğer hala bölüm bulunamadıysa, bu içerik tek bölümlük bir dizi/film olabilir
+                    if (allEpisodes.isEmpty()) {
+                        Log.d(this.name, "No episodes found, treating as a single episode")
+                        allEpisodes.add(
+                            newEpisode(url) {
+                                this.name = title
+                                this.season = 1
+                                this.episode = 1
+                            }
+                        )
                     }
                 }
                 
