@@ -28,7 +28,15 @@ class Dizifun : MainAPI() {
         "Netflix" to "netflix",
         "Disney+" to "disney",
         "Prime Video" to "primevideo",
-        "HBO Max" to "hbomax"
+        "HBO Max" to "hbomax",
+        "Exxen" to "exxen",
+        "Tabii" to "tabii-dizileri",
+        "BluTV" to "blutv",
+        "TodTV" to "todtv",
+        "Gain" to "gain",
+        "Hulu" to "hulu",
+        "Paramount+" to "paramount",
+        "Unutulmaz Diziler" to "unutulmaz"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
@@ -39,7 +47,7 @@ class Dizifun : MainAPI() {
         }
         
         val document = app.get(url).document
-        val home = document.select("div.editor_sec-grid div.editor_sec-item").mapNotNull {
+        val home = document.select("div.uk-overlay.uk-overlay-hover").mapNotNull {
             it.toSearchResponse()
         }
         return HomePageResponse(home)
@@ -47,10 +55,10 @@ class Dizifun : MainAPI() {
 
     private fun Element.toSearchResponse(): SearchResponse? {
         try {
-            val title = this.select("h3.editor_sec-title").text() ?: return null
-            val href = this.select("a.editor_sec-link").attr("href") ?: return null
-            val posterUrl = this.select("img.editor_sec-image").attr("src")
-            val year = this.select("p.editor_sec-date").text().toIntOrNull()
+            val title = this.select("h5.uk-panel-title").text() ?: return null
+            val href = this.select("a.uk-position-cover").attr("href") ?: return null
+            val posterUrl = this.select("img").attr("src")
+            val year = this.select("span.uk-display-block.uk-text-muted").text().trim().toIntOrNull()
 
             return newMovieSearchResponse(title, href) {
                 this.posterUrl = posterUrl
@@ -63,7 +71,7 @@ class Dizifun : MainAPI() {
 
     override suspend fun search(query: String): List<SearchResponse> {
         val document = app.get("$mainUrl/arama?query=$query").document
-        return document.select("div.editor_sec-item").mapNotNull {
+        return document.select("div.uk-overlay.uk-overlay-hover").mapNotNull {
             it.toSearchResponse()
         }
     }
