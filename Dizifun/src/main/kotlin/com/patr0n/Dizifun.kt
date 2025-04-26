@@ -128,7 +128,8 @@ class Dizifun : MainAPI() {
     override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
         Log.d("DZF", "data » $data")
         val headers = mapOf(
-            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Referer" to mainUrl
         )
 
         val document = app.get(data, headers=headers).document
@@ -137,7 +138,7 @@ class Dizifun : MainAPI() {
 
         iframes.forEach { iframe ->
             Log.d("DZF", "iframe » $iframe")
-            loadExtractor(iframe, data, subtitleCallback, callback)
+            loadExtractor(iframe, mainUrl, subtitleCallback, callback)
         }
 
         return true
