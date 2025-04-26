@@ -21,23 +21,25 @@ class Dizifun : MainAPI() {
     override var sequentialMainPageScrollDelay = 250L // ? 0.25 saniye
 
     override val mainPage = mainPageOf(
-        "${mainUrl}/netflix"           to "Netflix Dizileri",
-        "${mainUrl}/exxen"            to "Exxen Dizileri",
-        "${mainUrl}/disney"           to "Disney+ Dizileri",
-        "${mainUrl}/tabii-dizileri"   to "Tabii Dizileri",
-        "${mainUrl}/blutv"            to "BluTV Dizileri",
-        "${mainUrl}/todtv"            to "TodTV Dizileri",
-        "${mainUrl}/gain"             to "Gain Dizileri",
-        "${mainUrl}/hulu"             to "Hulu Dizileri",
-        "${mainUrl}/primevideo"       to "PrimeVideo Dizileri",
-        "${mainUrl}/hbomax"           to "HboMax Dizileri",
-        "${mainUrl}/paramount"        to "Paramount+ Dizileri",
-        "${mainUrl}/unutulmaz"        to "Unutulmaz Diziler"
+        "${mainUrl}/netflix"            to "Netflix Dizileri",
+        "${mainUrl}/exxen"              to "Exxen Dizileri",
+        "${mainUrl}/disney"             to "Disney+ Dizileri",
+        "${mainUrl}/tabii-dizileri"     to "Tabii Dizileri",
+        "${mainUrl}/blutv"              to "BluTV Dizileri",
+        "${mainUrl}/todtv"              to "TodTV Dizileri",
+        "${mainUrl}/gain"               to "Gain Dizileri",
+        "${mainUrl}/hulu"               to "Hulu Dizileri",
+        "${mainUrl}/primevideo"         to "PrimeVideo Dizileri",
+        "${mainUrl}/hbomax"             to "HboMax Dizileri",
+        "${mainUrl}/paramount"          to "Paramount+ Dizileri",
+        "${mainUrl}/unutulmaz"          to "Unutulmaz Diziler",
+        "${mainUrl}/category/filmler"   to "Filmler"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val headers = mapOf(
-            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Referer" to mainUrl
         )
 
         val url = if (page > 1) {
@@ -46,90 +48,117 @@ class Dizifun : MainAPI() {
             request.data
         }
 
+        Log.d("DZF", "Loading main page: $url")
         val document = app.get(url, headers=headers).document
-        val home     = document.select(".uk-width-medium-1-3.uk-width-large-1-6.uk-margin-bottom").mapNotNull { it.diziler() }
+        
+        // Farklı kapsayıcıları destekle (.uk-width-medium-1-3.uk-width-large-1-6 ve diğer muhtemel sınıflar)
+        val homeItems = document.select(".uk-width-medium-1-3.uk-width-large-1-6.uk-margin-bottom, div.uk-panel-box").mapNotNull { it.diziler() }
+        
+        if (homeItems.isEmpty()) {
+            Log.d("DZF", "No content found on page, trying alternate selectors")
+            // Fallback selectors - siteye özgü içerik kutularını bul
+            val altItems = document.select("article, .uk-panel, div[class*='dizi-box'], div[class*='film-box']").mapNotNull { it.diziler() }
+            return newHomePageResponse(request.name, altItems)
+        }
 
-        return newHomePageResponse(request.name, home)
+        return newHomePageResponse(request.name, homeItems)
     }
 
     private fun Element.diziler(): SearchResponse? {
-        val title     = this.selectFirst(".uk-panel-title.uk-text-truncate")?.text()?.substringBefore(" izle")?.trim() ?: return null
-        val href      = fixUrlNull(this.selectFirst(".uk-position-cover")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst(".uk-overlay img")?.attr("src"))
+        try {
+            // Farklı başlık seçicilerini dene
+            val title = this.selectFirst(".uk-panel-title.uk-text-truncate, h3, .film-name, .dizi-name, a[title], .uk-h3")
+                ?.text()?.substringBefore(" izle")?.trim()
+                ?: return null
 
-        return if (href.contains("/film/")) {
-            newMovieSearchResponse(title, href, TvType.Movie) { this.posterUrl = posterUrl }
-        } else {
-            newTvSeriesSearchResponse(title, href, TvType.TvSeries) { this.posterUrl = posterUrl }
+            // Farklı bağlantı seçicilerini dene
+            val href = fixUrlNull(this.selectFirst(".uk-position-cover, a[href], a")?.attr("href")) ?: return null
+            
+            // Farklı resim seçicilerini dene
+            val posterUrl = fixUrlNull(this.selectFirst(".uk-overlay img, img[src], .film-image img, .dizi-image img")?.attr("src"))
+            
+            // Yıl bilgisini bulmaya çalış
+            val year = this.selectFirst(".release, span.year, div.year")?.text()?.trim()?.let { 
+                Regex("(\\d{4})").find(it)?.groupValues?.get(1)?.toIntOrNull() 
+            }
+
+            return if (href.contains("/film/") || href.contains("/movie/") || href.contains("/filmler/")) {
+                newMovieSearchResponse(title, href, TvType.Movie) { 
+                    this.posterUrl = posterUrl
+                    this.year = year
+                }
+            } else {
+                newTvSeriesSearchResponse(title, href, TvType.TvSeries) { 
+                    this.posterUrl = posterUrl 
+                    this.year = year
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("DZF", "Error parsing search item", e)
+            return null
         }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
         val headers = mapOf(
-            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Referer" to mainUrl
         )
 
         val document = app.get("${mainUrl}/?s=${query}", headers=headers).document
-
-        return document.select(".uk-width-medium-1-3.uk-width-large-1-6.uk-margin-bottom").mapNotNull { it.diziler() }
-    }
-
-    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
-        Log.d("DZF", "data » $data")
-        val headers = mapOf(
-            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Referer" to data
-        )
-
-        try {
-            val document = app.get(data, headers=headers).document
-
-            val iframes = document.select("div.player-embed iframe, div.video-player iframe, iframe[src*='player']").mapNotNull { 
-                fixUrlNull(it.attr("src"))
-            }
-
-            if (iframes.isEmpty()) {
-                Log.e("DZF", "No iframes found on page")
-                return false
-            }
-
-            var success = false
-            iframes.forEach { iframe ->
-                Log.d("DZF", "iframe » $iframe")
-                try {
-                    if (loadExtractor(iframe, data, subtitleCallback, callback)) {
-                        success = true
-                    }
-                } catch (e: Exception) {
-                    Log.e("DZF", "Error loading iframe: $iframe", e)
-                }
-            }
-
-            return success
-        } catch (e: Exception) {
-            Log.e("DZF", "Error in loadLinks", e)
-            return false
+        
+        // Ana arama sonuçlarını dene
+        val searchResults = document.select(".uk-width-medium-1-3.uk-width-large-1-6.uk-margin-bottom, div.uk-panel-box, article, div[class*='dizi-box'], div[class*='film-box']").mapNotNull { it.diziler() }
+        
+        if (searchResults.isEmpty()) {
+            Log.d("DZF", "No search results found, trying alternate selectors")
+            // Alternatif seçicileri dene
+            return document.select("article, .uk-panel, div[class*='item']").mapNotNull { it.diziler() }
         }
+        
+        return searchResults
     }
 
     override suspend fun load(url: String): LoadResponse? {
         val headers = mapOf(
-            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Referer" to mainUrl
         )
 
         try {
+            Log.d("DZF", "Loading content: $url")
             val document = app.get(url, headers=headers).document
 
-            val title       = document.selectFirst("h1.film")?.text()?.substringBefore(" izle")?.trim() ?: return null
-            val poster      = fixUrlNull(document.selectFirst("[property='og:image']")?.attr("content"))
-            val year        = document.selectFirst("li.release")?.text()?.trim()?.let { Regex("(\\d+)").find(it)?.groupValues?.get(1)?.toIntOrNull() }
-            val description = document.selectFirst("div.description")?.text()?.trim()
-            val tags        = document.select("ul.post-categories a").map { it.text().trim() }
-            val rating      = document.selectFirst("div.imdb-count")?.text()?.trim()?.split(" ")?.first()?.toRatingInt()
-            val actors      = document.select("[href*='oyuncular']").map { Actor(it.text().trim()) }
-            val duration    = document.selectFirst("li.duration")?.text()?.trim()?.let { Regex("(\\d+)").find(it)?.groupValues?.get(1)?.toIntOrNull() }
+            // Farklı başlık seçicilerini dene
+            val title = document.selectFirst("h1.film, h1.title, h1, .content-title")
+                ?.text()?.substringBefore(" izle")?.trim() ?: return null
+                
+            // Farklı poster seçicilerini dene
+            val poster = fixUrlNull(document.selectFirst("[property='og:image'], .film-image img, .dizi-image img, .content-image img")?.attr("content") 
+                ?: document.selectFirst(".film-image img, .dizi-image img, .content-image img, img.poster")?.attr("src"))
+                
+            // Yıl bilgisini farklı seçicilerden bulmaya çalış
+            val year = document.selectFirst("li.release, span.year, div.year, [itemprop='dateCreated']")
+                ?.text()?.trim()?.let { Regex("(\\d{4})").find(it)?.groupValues?.get(1)?.toIntOrNull() }
+                
+            // Farklı seçicilerden açıklama bilgisini al
+            val description = document.selectFirst("div.description, [itemprop='description'], .content-desc, .summary")?.text()?.trim()
+            
+            // Kategori bilgilerini farklı seçicilerden topla
+            val tags = document.select("ul.post-categories a, .genres a, span.genres, [itemprop='genre']").map { it.text().trim() }
+            
+            // IMDb puanını farklı seçicilerden bul
+            val rating = document.selectFirst("div.imdb-count, span.imdb, [itemprop='ratingValue']")
+                ?.text()?.trim()?.split(" ")?.first()?.toRatingInt()
+                
+            // Oyuncu bilgilerini farklı seçicilerden topla
+            val actors = document.select("[href*='oyuncular'], .actors a, [itemprop='actors'] a").map { Actor(it.text().trim()) }
+            
+            // Süre bilgisini farklı seçicilerden bul
+            val duration = document.selectFirst("li.duration, span.duration, [itemprop='duration']")
+                ?.text()?.trim()?.let { Regex("(\\d+)").find(it)?.groupValues?.get(1)?.toIntOrNull() }
 
-            return if (url.contains("/film/")) {
+            return if (url.contains("/film/") || url.contains("/movie/") || url.contains("/filmler/")) {
                 newMovieLoadResponse(title, url, TvType.Movie, url) {
                     this.posterUrl = poster
                     this.year      = year
@@ -140,12 +169,28 @@ class Dizifun : MainAPI() {
                     addActors(actors)
                 }
             } else {
-                val episodes = document.select("div.episode-box").mapNotNull {
+                // Dizi bölümlerini farklı seçicilerden bul
+                val episodeElements = document.select("div.episode-box, li.episode, .episodes-list li, .seasons-list li")
+                Log.d("DZF", "Found ${episodeElements.size} episode elements")
+                
+                val episodes = episodeElements.mapNotNull {
                     try {
-                        val epName    = it.selectFirst("a")?.text()?.trim() ?: return@mapNotNull null
-                        val epHref    = fixUrlNull(it.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
-                        val epEpisode = Regex("(\\d+)\\.Bölüm").find(epName)?.groupValues?.get(1)?.toIntOrNull()
-                        val epSeason  = Regex("(\\d+)\\.Sezon").find(epName)?.groupValues?.get(1)?.toIntOrNull() ?: 1
+                        val epName = it.selectFirst("a, span.episode-name")?.text()?.trim() ?: return@mapNotNull null
+                        val epHref = fixUrlNull(it.selectFirst("a")?.attr("href")) ?: return@mapNotNull null
+                        
+                        // Bölüm numarasını farklı regex'lerle bul
+                        val epEpisode = Regex("(\\d+)\\.Bölüm|Bölüm\\s*(\\d+)|B(\\d+)").find(epName)?.let {
+                            val matchGroups = it.groupValues.filter { it.isNotEmpty() }
+                            if (matchGroups.size > 1) matchGroups[1].toIntOrNull() else null
+                        }
+                        
+                        // Sezon numarasını farklı regex'lerle bul
+                        val epSeason = Regex("(\\d+)\\.Sezon|Sezon\\s*(\\d+)|S(\\d+)").find(epName)?.let {
+                            val matchGroups = it.groupValues.filter { it.isNotEmpty() }
+                            if (matchGroups.size > 1) matchGroups[1].toIntOrNull() else null
+                        } ?: 1
+                        
+                        Log.d("DZF", "Parsed episode: S${epSeason}E${epEpisode} - $epName")
 
                         newEpisode(epHref) {
                             this.name    = epName
@@ -157,19 +202,123 @@ class Dizifun : MainAPI() {
                         null
                     }
                 }
-
-                newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
-                    this.posterUrl = poster
-                    this.year      = year
-                    this.plot      = description
-                    this.tags      = tags
-                    this.rating    = rating
-                    addActors(actors)
+                
+                if (episodes.isEmpty()) {
+                    Log.d("DZF", "No episodes found, adding current URL as single episode")
+                    // Eğer bölüm bulunamazsa, mevcut URL'yi tek bölüm olarak ekle
+                    val singleEpisode = listOf(
+                        newEpisode(url) {
+                            this.name = title
+                            this.season = 1
+                            this.episode = 1
+                        }
+                    )
+                    
+                    newTvSeriesLoadResponse(title, url, TvType.TvSeries, singleEpisode) {
+                        this.posterUrl = poster
+                        this.year      = year
+                        this.plot      = description
+                        this.tags      = tags
+                        this.rating    = rating
+                        addActors(actors)
+                    }
+                } else {
+                    newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
+                        this.posterUrl = poster
+                        this.year      = year
+                        this.plot      = description
+                        this.tags      = tags
+                        this.rating    = rating
+                        addActors(actors)
+                    }
                 }
             }
         } catch (e: Exception) {
             Log.e("DZF", "Error in load", e)
             return null
+        }
+    }
+
+    override suspend fun loadLinks(data: String, isCasting: Boolean, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit): Boolean {
+        Log.d("DZF", "Loading links: $data")
+        val headers = mapOf(
+            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Referer" to data
+        )
+
+        try {
+            val document = app.get(data, headers=headers).document
+
+            // Farklı iframe seçicilerini dene
+            val iframes = document.select("div.player-embed iframe, div.video-player iframe, iframe[src*='player'], iframe[data-src], iframe, div.embed-responsive iframe").mapNotNull { 
+                val src = it.attr("src")
+                val dataSrc = it.attr("data-src")
+                fixUrlNull(if (src.isNotBlank()) src else dataSrc)
+            }
+
+            if (iframes.isEmpty()) {
+                Log.e("DZF", "No iframes found on page, trying to find direct source links")
+                // İframe bulunamazsa, doğrudan kaynak linkleri aramayı dene
+                val sources = document.select("source[src], video[src]").mapNotNull { fixUrlNull(it.attr("src")) }
+                
+                sources.forEach { source ->
+                    Log.d("DZF", "Found direct source: $source")
+                    callback.invoke(
+                        ExtractorLink(
+                            name,
+                            "Direct",
+                            source,
+                            data,
+                            Qualities.Unknown.value,
+                            source.contains(".m3u8")
+                        )
+                    )
+                }
+                
+                return sources.isNotEmpty()
+            }
+
+            var success = false
+            iframes.forEach { iframe ->
+                Log.d("DZF", "Processing iframe: $iframe")
+                try {
+                    if (loadExtractor(iframe, data, subtitleCallback, callback)) {
+                        Log.d("DZF", "Successfully loaded extractor for: $iframe")
+                        success = true
+                    } else {
+                        Log.d("DZF", "No extractor found for: $iframe, trying to load as direct link")
+                        // Extractor bulunamazsa, iframe içeriğini kontrol et
+                        try {
+                            val iframeContent = app.get(iframe, headers = headers).document
+                            val directLinks = iframeContent.select("source[src], video[src]").mapNotNull { fixUrlNull(it.attr("src")) }
+                            
+                            directLinks.forEach { link ->
+                                Log.d("DZF", "Found direct link in iframe: $link")
+                                callback.invoke(
+                                    ExtractorLink(
+                                        name,
+                                        "Direct",
+                                        link,
+                                        iframe,
+                                        Qualities.Unknown.value,
+                                        link.contains(".m3u8")
+                                    )
+                                )
+                                success = true
+                            }
+                        } catch (e: Exception) {
+                            Log.e("DZF", "Error loading iframe content: $iframe", e)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("DZF", "Error processing iframe: $iframe", e)
+                }
+            }
+
+            return success
+        } catch (e: Exception) {
+            Log.e("DZF", "Error in loadLinks", e)
+            return false
         }
     }
 }
