@@ -22,7 +22,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=animecix.net&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 21729,
+        "fileSize": 23147,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -34,7 +34,7 @@
         "tvTypes": [
             "Anime"
         ],
-        "version": 8,
+        "version": 9,
         "internalName": "AnimeciX",
         "description": "AnimeciX, animeleri ke\u015ffedebilece\u011finiz ve animeler hakk\u0131nda her \u015feyi \u00f6\u011frenebilece\u011finiz bir payla\u015f\u0131m platformudur.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/AnimeciX.cs3",
@@ -103,10 +103,31 @@
         "name": "CizgiMax"
     },
     {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=ddizi.im&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+        "fileSize": 22760,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "yunus60",
+            "GitLatte",
+            "patr0nq"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 1,
+        "internalName": "DDizi",
+        "description": "Ddizi, dizi izle, dizi seyret, ddizi.im - G\u00fcncel ve eski dizileri en iyi g\u00f6r\u00fcnt\u00fc kalitesiyle bulabilece\u011finiz dizi izleme sitesi.",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/DDizi.cs3",
+        "name": "DDizi"
+    },
+    {
         "iconUrl": "https://www.google.com/s2/favicons?domain=www.dizibox.de&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 21102,
+        "fileSize": 22717,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -116,7 +137,7 @@
         "tvTypes": [
             "TvSeries"
         ],
-        "version": 5,
+        "version": 6,
         "internalName": "DiziBox",
         "description": "Yabanc\u0131 Dizi izle, T\u00fcm yabanc\u0131 dizilerin yeni ve eski sezonlar\u0131n\u0131 full hd izleyebilece\u011finiz elit site.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/DiziBox.cs3",
@@ -165,7 +186,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=dizilla.club&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 23778,
+        "fileSize": 27754,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -175,7 +196,7 @@
         "tvTypes": [
             "TvSeries"
         ],
-        "version": 18,
+        "version": 20,
         "internalName": "Dizilla",
         "description": "Dizilla t\u00fcm yabanc\u0131 dizileri \u00fccretsiz olarak T\u00fcrk\u00e7e Dublaj ve altyaz\u0131l\u0131 se\u00e7enekleri ile 1080P kalite izleyebilece\u011finiz yeni nesil yabanc\u0131 dizi izleme siteniz.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/Dizilla.cs3",
@@ -185,7 +206,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=dizimag.net&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 26001,
+        "fileSize": 26256,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -194,7 +215,7 @@
         "tvTypes": [
             "TvSeries"
         ],
-        "version": 7,
+        "version": 8,
         "internalName": "DiziMag",
         "description": "En son \u00e7\u0131kan yabanc\u0131 dizi ve filmleri DiziMag fark\u0131yla full hd 1080p kalitede izle. Dizimag Geni\u015f ve g\u00fcncel ar\u015fiviyle dizi ve filmlerin tad\u0131n\u0131 \u00e7\u0131kart\u0131n.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/DiziMag.cs3",
@@ -204,7 +225,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=www.dizimom.tv&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 29297,
+        "fileSize": 29833,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -214,7 +235,7 @@
         "tvTypes": [
             "TvSeries"
         ],
-        "version": 12,
+        "version": 13,
         "internalName": "DiziMom",
         "description": "Binlerce yerli yabanc\u0131 dizi ar\u015fivi, t\u00fcm sezonlar, kesintisiz b\u00f6l\u00fcmler. Sadece dizi izle, Dizimom heryerde seninle!",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/DiziMom.cs3",
@@ -224,7 +245,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=https://dizipal683.com&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 17241,
+        "fileSize": 17243,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -235,7 +256,7 @@
             "TvSeries",
             "Movie"
         ],
-        "version": 29,
+        "version": 30,
         "internalName": "DiziPal",
         "description": "en yeni dizileri g\u00fcvenli ve h\u0131zl\u0131 \u015fekilde sunar.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/DiziPal.cs3",
@@ -260,6 +281,25 @@
         "description": "Diziyou en kaliteli T\u00fcrk\u00e7e dublaj ve altyaz\u0131l\u0131 yabanc\u0131 dizi izleme sitesidir. G\u00fcncel ve efsanevi dizileri 1080p Full HD kalitede izlemek i\u00e7in hemen t\u0131kla!",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/DiziYou.cs3",
         "name": "DiziYou"
+    },
+    {
+        "iconUrl": "https://www.dmax.com.tr/favicon.ico",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+        "fileSize": 13243,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "nikyokki"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 2,
+        "internalName": "DMax",
+        "description": "DMAX dizi ve programlar\u0131n\u0131 takip etmek i\u00e7in ziyaret edin. DMAX dizi ve programlar\u0131n\u0131 tek par\u00e7a ve hd kalitesiyle izleyin.",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/DMax.cs3",
+        "name": "DMax"
     },
     {
         "iconUrl": "https://www.google.com/s2/favicons?domain=tr.canlitv.team&sz=%size%",
@@ -322,7 +362,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=filmmakinesi.film&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 14738,
+        "fileSize": 21553,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -333,7 +373,7 @@
         "tvTypes": [
             "Movie"
         ],
-        "version": 8,
+        "version": 11,
         "internalName": "FilmMakinesi",
         "description": "Film Makinesi, en yeni ve en g\u00fcncel filmleri sitemizde full HD kalite fark\u0131 ile izleyebilirsiniz. HD film izle denildi\u011finde akla gelen en kaliteli film izleme sitesi.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/FilmMakinesi.cs3",
@@ -442,7 +482,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=hdfilmcehennemi.com&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 22092,
+        "fileSize": 22107,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -454,7 +494,7 @@
             "Movie",
             "TvSeries"
         ],
-        "version": 20,
+        "version": 21,
         "internalName": "HDFilmCehennemi",
         "description": "T\u00fcrkiye'nin en h\u0131zl\u0131 hd film izleme sitesi",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/HDFilmCehennemi.cs3",
@@ -464,7 +504,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=www.hdfilmcehennemi2.nl&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 22753,
+        "fileSize": 23797,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -473,7 +513,7 @@
         "tvTypes": [
             "Movie"
         ],
-        "version": 3,
+        "version": 4,
         "internalName": "HDFilmCehennemi2",
         "description": "Full hd film izleme keyfini hdfilmcehennemi2 ile ya\u015fay\u0131n. T\u00fcrkiyenin en g\u00fcncel y\u00fcksek hd kalitede film izleme sitesi.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/HDFilmCehennemi2.cs3",
@@ -503,7 +543,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=hdfilmsitesi.net&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 22402,
+        "fileSize": 22401,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -512,7 +552,7 @@
         "tvTypes": [
             "Movie"
         ],
-        "version": 7,
+        "version": 8,
         "internalName": "HDFilmSitesi",
         "description": "Film izle, Hdfilmsitesi ile Online 1080p ve 4K kalite Full HD Filmlere T\u00fcrk\u00e7e Dublaj ve Altyaz\u0131l\u0131 olarak Reklams\u0131z Kesintisiz HD Film izle.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/HDFilmSitesi.cs3",
@@ -659,10 +699,10 @@
         "name": "KultFilmler"
     },
     {
-        "iconUrl": "https://iosmirror.cc/img/nf2/icon_x192.png",
+        "iconUrl": "https://netfree2.cc/mobile/img/nf2/icon_x192.png",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 38592,
+        "fileSize": 36950,
         "status": 1,
         "language": "hi",
         "authors": [
@@ -674,7 +714,7 @@
             "Movie",
             "TvSeries"
         ],
-        "version": 9,
+        "version": 10,
         "internalName": "NetflixMirror",
         "description": "Netflix, PrimeVideo Content in Multiple Languages",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/NetflixMirror.cs3",
@@ -808,7 +848,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=roketdizi.co&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 20735,
+        "fileSize": 20733,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -817,11 +857,30 @@
         "tvTypes": [
             "TvSeries"
         ],
-        "version": 5,
+        "version": 6,
         "internalName": "RoketDizi",
         "description": "T\u00fcrkiye'nin en tatl\u0131\u015f yabanc\u0131 dizi izleme sitesi. T\u00fcrk\u00e7e dublaj, altyaz\u0131l\u0131, eski ve yeni yabanc\u0131 dizilerin yan\u0131 s\u0131ra kore (asya) dizileri izleyebilirsiniz.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/RoketDizi.cs3",
         "name": "RoketDizi"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=selcukflix.com&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+        "fileSize": 28865,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "nikyokki"
+        ],
+        "tvTypes": [
+            "Movie, TvSeries"
+        ],
+        "version": 2,
+        "internalName": "SelcukFlix",
+        "description": "Selcukflix'te her t\u00fcrden en yeni ve en pop\u00fcler dizi ve filmleri izlemenin keyfini \u00e7\u0131kar\u0131n. Aksiyondan romanti\u011fe, bilim kurgudan dramaya, geni\u015f k\u00fct\u00fcphanemizde herkes i\u00e7in bir \u015fey var.",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/SelcukFlix.cs3",
+        "name": "SelcukFlix"
     },
     {
         "iconUrl": "https://www.google.com/s2/favicons?domain=www.setfilmizle.de&sz=%size%",
@@ -868,7 +927,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=www.sinema.cx&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 13768,
+        "fileSize": 14360,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -878,7 +937,7 @@
         "tvTypes": [
             "Movie"
         ],
-        "version": 4,
+        "version": 5,
         "internalName": "SinemaCX",
         "description": "G\u00fcncel ve en iyi yabanc\u0131 filmleri y\u00fcksek g\u00f6r\u00fcnt\u00fc kalitesinde, T\u00fcrk\u00e7e dublaj ve altyaz\u0131 se\u00e7enekleriyle filmleri full izleyin.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/SinemaCX.cs3",
@@ -968,21 +1027,21 @@
         "name": "Tafdi"
     },
     {
-        "iconUrl": "https://www.google.com/s2/favicons?domain=www.tlctv.com.tr/&sz=%size%",
+        "iconUrl": "https://www.tlctv.com.tr/favicon.ico",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 13023,
+        "fileSize": 13251,
         "status": 1,
         "language": "tr",
         "authors": [
-            "nikypatr0nokki"
+            "nikyokki"
         ],
         "tvTypes": [
-            "Movie"
+            "TvSeries"
         ],
-        "version": 0,
+        "version": 1,
         "internalName": "Tlc",
-        "description": "Tlc programlar\u0131n\u0131 buradan izleyebilirsiniz.",
+        "description": "TLC TV dizi ve programlar\u0131n\u0131 takip etmek i\u00e7in ziyaret edin. TLC TV dizi ve programlar\u0131n\u0131 tek par\u00e7a ve hd kalitesiyle izleyin.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/Tlc.cs3",
         "name": "Tlc"
     },
@@ -1004,6 +1063,25 @@
         "description": "T\u00fcrk Anime TV - T\u00fcrkiye'nin Online Anime izleme sitesi.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/TurkAnime.cs3",
         "name": "TurkAnime"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=tvdiziler.cc&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+        "fileSize": 26718,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "nikyokki"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 2,
+        "internalName": "TvDiziler",
+        "description": "\u00dccretsiz yerli dizi izleme sitesi en pop\u00fcler dizileri tek par\u00e7a hd kalitesiyle ve reklams\u0131z bedava olarak buradan tv dizileri izleyin.",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/TvDiziler.cs3",
+        "name": "TvDiziler"
     },
     {
         "iconUrl": "https://www.google.com/s2/favicons?domain=ugurfilm7.com&sz=%size%",
@@ -1105,7 +1183,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=webteizle2.com&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 21825,
+        "fileSize": 21821,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -1115,7 +1193,7 @@
         "tvTypes": [
             "Movie"
         ],
-        "version": 24,
+        "version": 27,
         "internalName": "WebteIzle",
         "description": "Her t\u00fcrl\u00fc filmi ister dublaj ister altyaz\u0131l\u0131, en kaliteli bir \u015fekilde izleyebilece\u011finiz ar\u015fivi en geni\u015f ger\u00e7ek film izleme siteniz.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/WebteIzle.cs3",
