@@ -1,9 +1,9 @@
-version = 0
+version = 1
 
 cloudstream {
-    authors     = listOf("nikypatr0nokki")
+    authors     = listOf("nikyokki")
     language    = "tr"
-    description = "Tlc programlarını buradan izleyebilirsiniz."
+    description = "TLC TV dizi ve programlarını takip etmek için ziyaret edin. TLC TV dizi ve programlarını tek parça ve hd kalitesiyle izleyin."
 
     /**
      * Status int as the following:
@@ -13,6 +13,6 @@ cloudstream {
      * 3: Beta only
     **/
     status  = 1 // will be 3 if unspecified
-    tvTypes = listOf("Movie")
-    iconUrl = "https://www.google.com/s2/favicons?domain=www.tlctv.com.tr/&sz=%size%"
+    tvTypes = listOf("TvSeries")
+    iconUrl = "https://www.tlctv.com.tr/favicon.ico"
 }

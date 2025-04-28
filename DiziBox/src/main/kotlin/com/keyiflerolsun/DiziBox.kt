@@ -47,8 +47,11 @@ class DiziBox : MainAPI() {
     }
 
     override val mainPage = mainPageOf(
+        "${mainUrl}/tum-bolumler/page/SAYFA/?tip=populer"               to "Popüler Dizilerden Son Bölümler",
+        "${mainUrl}/tum-bolumler/page/SAYFA/"                           to "Yeni Eklenen Bölümler",
+        "${mainUrl}/dizi-arsivi/page/SAYFA/"                            to "Dizi Arşivi",
         "${mainUrl}/dizi-arsivi/page/SAYFA/?ulke[]=turkiye&yil=&imdb"   to "Yerli",
-        "${mainUrl}/dizi-arsivi/page/SAYFA/?tur[0]%5B%5D=aile&yil&imdb"       to "Aile",
+        "${mainUrl}/dizi-arsivi/page/SAYFA/?tur[0]=aile&yil&imdb"       to "Aile",
         "${mainUrl}/dizi-arsivi/page/SAYFA/?tur[0]=aksiyon&yil&imdb"    to "Aksiyon",
         "${mainUrl}/dizi-arsivi/page/SAYFA/?tur[0]=animasyon&yil&imdb"  to "Animasyon",
         "${mainUrl}/dizi-arsivi/page/SAYFA/?tur[0]=belgesel&yil&imdb"   to "Belgesel",
@@ -84,7 +87,11 @@ class DiziBox : MainAPI() {
             ),
             interceptor = interceptor
         ).document
-        val home     = document.select("article.detailed-article").mapNotNull { it.toMainPageResult() }
+        if (request.name == "Yeni Eklenen Bölümler" || request.name == "Popüler Dizilerden Son Bölümler") {
+            val home = document.select("article.article-episode-card").mapNotNull { it.sonBolumler() }
+            return newHomePageResponse(request.name, home)
+        }
+        val home = document.select("article.detailed-article").mapNotNull { it.toMainPageResult() }
 
         return newHomePageResponse(request.name, home)
     }
@@ -95,6 +102,25 @@ class DiziBox : MainAPI() {
         val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
 
         return newTvSeriesSearchResponse(title, href, TvType.TvSeries) { this.posterUrl = posterUrl }
+    }
+
+    private suspend fun Element.sonBolumler(): SearchResponse? {
+        val name = this.selectFirst("b.series-name")?.text() ?: ""
+        val szn = this.selectFirst("span.season")?.text()?.replace(".SEZON", "") ?: ""
+        val ep = this.selectFirst("b.episode")?.text()?.replace(".BÖLÜM", "") ?: ""
+        val epName = "${szn}x$ep"
+
+        val title = "$name - $epName"
+
+        val epDoc = fixUrlNull(this.selectFirst("a")?.attr("href"))?.let { app.get(it).document }
+
+        val href = fixUrlNull(epDoc?.selectFirst("a.archive-title")?.attr("href")) ?: return null
+
+        val posterUrl = fixUrlNull(epDoc?.selectFirst("img.small-thumbnail")?.attr("src"))?.replace("50x50","200x290")
+
+        return newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
+            this.posterUrl = posterUrl
+        }
     }
 
     override suspend fun search(query: String): List<SearchResponse> {
@@ -112,6 +138,8 @@ class DiziBox : MainAPI() {
     }
 
     override suspend fun quickSearch(query: String): List<SearchResponse> = search(query)
+
+
 
     override suspend fun load(url: String): LoadResponse? {
         val document = app.get(

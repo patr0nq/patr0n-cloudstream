@@ -1,4 +1,4 @@
-version = 24
+version = 27
 
 cloudstream {
     authors     = listOf("keyiflerolsun", "nikyokki")

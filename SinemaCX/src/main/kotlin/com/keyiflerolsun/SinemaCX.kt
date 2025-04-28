@@ -92,9 +92,9 @@ class SinemaCX : MainAPI() {
         val iframe   = fixUrlNull(document.selectFirst("iframe")?.attr("data-vsrc"))?.substringBefore("?img=") ?: return false
         Log.d("SCX", "iframe » $iframe")
 
-        val iframeSource         = app.get(iframe, referer="${mainUrl}/").text
+        val iframeSource         = app.get(iframe, referer="${mainUrl}/").document
         val subtitleSectionRegex = Regex("""playerjsSubtitle\s*=\s*"(.+?)"""")
-        val subtitleSectionMatch = subtitleSectionRegex.find(iframeSource)
+        val subtitleSectionMatch = subtitleSectionRegex.find(iframeSource.text())
         if (subtitleSectionMatch != null) {
             val subtitleSection = subtitleSectionMatch.groupValues[1]
             val subtitleRegex   = Regex("""\[(.*?)](https?://[^\s",]+)""")
@@ -118,6 +118,24 @@ class SinemaCX : MainAPI() {
         if (iframe.contains("panel.sinema.cx")){
             val vidUrl = app.post(
                 "https://panel.sinema.cx/player/index.php?data=" + iframe.split("/").last() + "&do=getVideo",
+                headers = mapOf("X-Requested-With" to "XMLHttpRequest"),
+                referer = "${mainUrl}/"
+            ).parsedSafe<Panel>()?.securedLink ?: return false
+
+            callback.invoke(
+                newExtractorLink(
+                    source  = this.name,
+                    name    = this.name,
+                    url     = vidUrl,
+                    ExtractorLinkType.M3U8
+                ) {
+                    this.referer = iframe
+                    this.quality = Qualities.Unknown.value
+                }
+            )
+        } else if (iframe.contains("player.filmizle.in")) {
+            val vidUrl = app.post(
+                "https://player.filmizle.in/player/index.php?data=" + iframe.split("/").last() + "&do=getVideo",
                 headers = mapOf("X-Requested-With" to "XMLHttpRequest"),
                 referer = "${mainUrl}/"
             ).parsedSafe<Panel>()?.securedLink ?: return false

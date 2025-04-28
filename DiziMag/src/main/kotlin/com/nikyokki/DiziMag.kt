@@ -19,6 +19,7 @@ import com.lagradost.cloudstream3.app
 import com.lagradost.cloudstream3.fixUrl
 import com.lagradost.cloudstream3.fixUrlNull
 import com.lagradost.cloudstream3.mainPageOf
+import com.lagradost.cloudstream3.newEpisode
 import com.lagradost.cloudstream3.newHomePageResponse
 import com.lagradost.cloudstream3.newMovieLoadResponse
 import com.lagradost.cloudstream3.newMovieSearchResponse
@@ -198,12 +199,11 @@ class DiziMag : MainAPI() {
                     val epEpisode = blm++
                     val epSeason = szn
                     episodeses.add(
-                        Episode(
-                            data = epHref,
-                            name = epName,
-                            season = epSeason,
-                            episode = epEpisode
-                        )
+                        newEpisode(epHref) {
+                            this.name = epName
+                            this.season = epSeason
+                            this.episode = epEpisode
+                        }
                     )
                 }
                 szn++

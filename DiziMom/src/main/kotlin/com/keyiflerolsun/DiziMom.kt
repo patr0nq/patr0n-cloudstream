@@ -135,7 +135,24 @@ class DiziMom : MainAPI() {
 
         for (iframe in iframes) {
             Log.d("DZM", "iframe » $iframe")
-            loadExtractor(iframe, "${mainUrl}/", subtitleCallback, callback)
+            if (iframe.contains("youtube.com")) {
+                val id = iframe.substringAfter("/embed/").substringBefore("?")
+                callback(
+                    newExtractorLink(
+                        "Youtube",
+                        "Youtube",
+                        "https://nyc1.ivc.ggtyler.dev/api/manifest/dash/id/$id",
+                        ExtractorLinkType.DASH
+                    ) {
+                        this.referer = ""
+                        this.headers = mapOf()
+                        this.quality = Qualities.Unknown.value
+                        this.extractorData = null
+                    }
+                )
+            } else {
+                loadExtractor(iframe, "${mainUrl}/", subtitleCallback, callback)
+            }
         }
 
         return true
