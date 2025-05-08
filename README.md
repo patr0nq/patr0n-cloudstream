@@ -1,4 +1,4 @@
-# ☁️ CloudStream için Türkçe Eklentiler
+# ☁️ CloudStream için Türkçe Eklentiler -- Toplama repodur, yedek amacıyla kullanılıyordur.
 
 [![Boyut](https://img.shields.io/github/repo-size/keyiflerolsun/Kekik-cloudstream?logo=git&logoColor=white&label=Boyut)](#)
 [![Görüntülenme](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https://github.com/keyiflerolsun/Kekik-cloudstream&title=Görüntülenme)](#)
