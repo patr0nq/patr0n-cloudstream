@@ -5,6 +5,7 @@ import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
 import org.jsoup.Jsoup // Added for direct HTML parsing if needed, though app.get.document is preferred
 import java.net.URLDecoder // For URI decoding
+import android.util.Log // Add Log import
 
 class DizifunProvider : MainAPI() { // All providers must be subclasses of MainAPI
     override var mainUrl = "https://dizifun2.com"
@@ -282,7 +283,7 @@ class DizifunProvider : MainAPI() { // All providers must be subclasses of MainA
                 //     ActorData(Actor(name ?: "", image), roleString = "Actor")
                 // }
                 if (trailerUrl != null) {
-                    this.trailers = listOf(Video(trailerUrl, "Trailer",Qualities.Unknown.value,trailerUrl.contains("youtube") ))
+                    this.trailers = listOf(TrailerData(trailerUrl, "Trailer", trailerUrl.contains("youtube")))
                 }
             }
         } else if (url.contains("/film/")) { // Movie
@@ -295,7 +296,7 @@ class DizifunProvider : MainAPI() { // All providers must be subclasses of MainA
                 this.tags = genres
                 this.recommendations = recommendations
                 if (trailerUrl != null) {
-                    this.trailers = listOf(Video(trailerUrl, "Trailer",Qualities.Unknown.value,trailerUrl.contains("youtube") ))
+                    this.trailers = listOf(TrailerData(trailerUrl, "Trailer", trailerUrl.contains("youtube")))
                 }
                 // Add other details like rating, duration, actors if available
             }
@@ -312,8 +313,8 @@ class DizifunProvider : MainAPI() { // All providers must be subclasses of MainA
             it.html().contains("function hexToString(hex)") && it.html().contains("changePlayer(playerType)") 
         }?.html() ?: return false
 
-        val jwPlayerHex = Regex("playerUrl = decodeURIComponent\(hexToString\(\"(.*?)\"\)\);\\s*else if \(playerType === \"videojs\"\)").find(scriptContent)?.groupValues?.get(1)
-        val videojsPlayerHex = Regex("else if \(playerType === \"videojs\"\) {\\s*playerUrl = decodeURIComponent\(hexToString\(\"(.*?)\"\)\);")
+        val jwPlayerHex = Regex("playerUrl = decodeURIComponent\\(hexToString\\(\"(.*?)\"\\)\\);\\s*else if \\(playerType === \"videojs\"\\)").find(scriptContent)?.groupValues?.get(1)
+        val videojsPlayerHex = Regex("else if \\(playerType === \"videojs\"\\) {\\s*playerUrl = decodeURIComponent\\(hexToString\\(\"(.*?)\"\\)\\);")
             .find(scriptContent)?.groupValues?.get(1)
         
         val potentialHexSources = listOfNotNull(jwPlayerHex, videojsPlayerHex)
