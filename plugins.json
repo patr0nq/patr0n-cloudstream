@@ -41,10 +41,29 @@
         "name": "AnimeciX"
     },
     {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=asyawatch.com&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+        "fileSize": 28875,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "nikyokki"
+        ],
+        "tvTypes": [
+            "Movie, TvSeries"
+        ],
+        "version": 2,
+        "internalName": "AsyaWatch",
+        "description": "Asyawatch",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/AsyaWatch.cs3",
+        "name": "AsyaWatch"
+    },
+    {
         "iconUrl": "https://www.google.com/s2/favicons?domain=belgeselx.com&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 19703,
+        "fileSize": 20295,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -55,7 +74,7 @@
         "tvTypes": [
             "Documentary"
         ],
-        "version": 5,
+        "version": 6,
         "internalName": "BelgeselX",
         "description": "En yeni belgeseller, t\u00fcrk\u00e7e altyaz\u0131l\u0131 yada dublaj olarak 1080p kalitesinde HD belgesel izle.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/BelgeselX.cs3",
@@ -65,7 +84,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=tr.canlitv.team&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 18676,
+        "fileSize": 18019,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -76,7 +95,7 @@
         "tvTypes": [
             "Live"
         ],
-        "version": 5,
+        "version": 6,
         "internalName": "CanliTV",
         "description": "Canl\u0131 TV",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/CanliTV.cs3",
@@ -147,21 +166,22 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=dizifun2.com&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 18953,
+        "fileSize": 31014,
         "status": 1,
         "language": "tr",
         "authors": [
-            "patr0n"
+            "GitLatte",
+            "patr0nq"
         ],
         "tvTypes": [
-            "Movie",
-            "TvSeries"
+            "TvSeries",
+            "Movie"
         ],
         "version": 1,
-        "internalName": "DizifunProvider",
-        "description": "Dizifun - Her Dizi Bir Macera, Her An Bir Ke\u015fif!",
-        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/DizifunProvider.cs3",
-        "name": "DizifunProvider"
+        "internalName": "DiziFun",
+        "description": "Dizifun, yabanc\u0131 dizi - film, yerli dizi - film , t\u00fcrk\u00e7e dublaj , t\u00fcrk\u00e7e altyaz\u0131l\u0131 ve anime dizi - film izlemeniz i\u00e7in sizinledir.",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/DiziFun.cs3",
+        "name": "DiziFun"
     },
     {
         "iconUrl": "https://www.google.com/s2/favicons?domain=dizigom1.co&sz=%size%",
@@ -602,7 +622,7 @@
         "iconUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh3vCp6N1K4bECoYRQD-cisJF2_6V_Hk01ZhDmoPR2JuM8O5qr4MqrPO1munM9cRlleBBSK6odYhLtDBWv4E3vhPhynlmS5hVVtJZShHoGA5REQ8_3v8SIlccTEqzVQu2UJyNYQdJNrKIfWy66RQeT0D-CcmFCbHPz5023H6p2v5fv4NVloZ5Rqo_yGrIY/s320/iNat-Box-App.png",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 27191,
+        "fileSize": 30823,
         "status": 3,
         "language": "tr",
         "authors": [
@@ -614,7 +634,7 @@
             "TvSeries",
             "Live"
         ],
-        "version": 14,
+        "version": 15,
         "internalName": "InatBox",
         "description": "\u0130natBox cloudstream eklentisidir. Sevdi\u011finiz yay\u0131n platformlar\u0131n\u0131 ve canl\u0131 ma\u00e7lar\u0131 burada bulabilirsiniz.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/InatBox.cs3",
@@ -719,6 +739,25 @@
         "name": "KultFilmler"
     },
     {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=colorhunt.co&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+        "fileSize": 17268,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "sarapcanagii"
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 6,
+        "internalName": "NeonSpor",
+        "description": "(BeIN Sport, Tivibu Spor ve Smart Spor i\u00e7in VPN Gerekebilir.) NeonSpor eklentisini de BeIN Sport, Tabii Spor, Tivibu Spor, Smart Spor, S Sport ve Di\u011fer kanallar mevcuttur.",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/NeonSpor.cs3",
+        "name": "NeonSpor"
+    },
+    {
         "iconUrl": "https://netfree2.cc/mobile/img/nf2/icon_x192.png",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
@@ -780,44 +819,6 @@
         "description": "(VPN) Pornhub is the world\u2019s leading free porn site. Choose from millions of hardcore videos that stream quickly and in high quality, including amazing VR Porn. The largest adult site on the Internet just keeps getting better. We have more pornstars and real amateurs than anyone else. It\u2019s fast, it\u2019s free, it\u2019s Pornhub!",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/PornHub.cs3",
         "name": "PornHub"
-    },
-    {
-        "iconUrl": "https://www.google.com/s2/favicons?domain=tr.canlitv.team&sz=%size%",
-        "apiVersion": 1,
-        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 18684,
-        "status": 1,
-        "language": "tr",
-        "authors": [
-            "patr0n"
-        ],
-        "tvTypes": [
-            "TvSeries"
-        ],
-        "version": 3,
-        "internalName": "powerDizi",
-        "description": "powerDizi",
-        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/powerDizi.cs3",
-        "name": "powerDizi"
-    },
-    {
-        "iconUrl": "https://www.google.com/s2/favicons?domain=tr.canlitv.team&sz=%size%",
-        "apiVersion": 1,
-        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 18673,
-        "status": 1,
-        "language": "tr",
-        "authors": [
-            "patr0n"
-        ],
-        "tvTypes": [
-            "Movie"
-        ],
-        "version": 3,
-        "internalName": "powerSinema",
-        "description": "powerSinema",
-        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/powerSinema.cs3",
-        "name": "powerSinema"
     },
     {
         "iconUrl": "https://www.google.com/s2/favicons?domain=rarefilmm.com&sz=%size%",
@@ -947,7 +948,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=www.sinema.cx&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 14360,
+        "fileSize": 14356,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -957,34 +958,11 @@
         "tvTypes": [
             "Movie"
         ],
-        "version": 5,
+        "version": 6,
         "internalName": "SinemaCX",
         "description": "G\u00fcncel ve en iyi yabanc\u0131 filmleri y\u00fcksek g\u00f6r\u00fcnt\u00fc kalitesinde, T\u00fcrk\u00e7e dublaj ve altyaz\u0131 se\u00e7enekleriyle filmleri full izleyin.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/SinemaCX.cs3",
         "name": "SinemaCX"
-    },
-    {
-        "iconUrl": "https://play-lh.googleusercontent.com/brwGNmr7IjA_MKk_TTPs0va10hdKE_bD_a1lnKoiMuCayW98EHpRv55edA6aEoJlmwfX",
-        "apiVersion": 1,
-        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 25307,
-        "status": 1,
-        "language": "tr",
-        "authors": [
-            "keyiflerolsun",
-            "yusiqo",
-            "nikyokki"
-        ],
-        "tvTypes": [
-            "Movie",
-            "TvSeries",
-            "Anime"
-        ],
-        "version": 12,
-        "internalName": "SineWix",
-        "description": "Sinewix | \u00dccretsiz Film - Dizi - Anime \u0130zleme Uygulamas\u0131.",
-        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/SineWix.cs3",
-        "name": "SineWix"
     },
     {
         "iconUrl": "https://www.google.com/s2/favicons?domain=spankbang.com&sz=%size%",
@@ -1011,7 +989,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=www.superfilmgeldi.biz&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 18217,
+        "fileSize": 18225,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -1021,7 +999,7 @@
         "tvTypes": [
             "Movie"
         ],
-        "version": 4,
+        "version": 5,
         "internalName": "SuperFilmGeldi",
         "description": "Hd film izliyerek arkada\u015flar\u0131n\u0131zla ve sevdiklerinizle iyi bir vakit ge\u00e7irmek istiyorsan\u0131z a\u00e7\u0131n bir film e\u011flenmeye bak\u0131n. Bilim kurgu filmleri, a\u015fk drama vah\u015fet a\u015fk romantik s\u0131rad\u0131\u015f\u0131 korku filmlerini izle.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/SuperFilmGeldi.cs3",
@@ -1066,6 +1044,26 @@
         "name": "Tlc"
     },
     {
+        "iconUrl": "https://raw.githubusercontent.com/GitLatte/temporarylists/refs/heads/main/img/daddylive.png",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+        "fileSize": 21976,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "GitLatte",
+            "patr0nq"
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 2,
+        "internalName": "TOGrup",
+        "description": "TO Grubu spor kanallar\u0131n\u0131 i\u00e7erir: Vavoo.to, Huhu.to, Kool.to, Oha.to",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/TOGrup.cs3",
+        "name": "TOGrup"
+    },
+    {
         "iconUrl": "https://www.google.com/s2/favicons?domain=www.turkanime.co&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
@@ -1083,6 +1081,27 @@
         "description": "T\u00fcrk Anime TV - T\u00fcrkiye'nin Online Anime izleme sitesi.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/TurkAnime.cs3",
         "name": "TurkAnime"
+    },
+    {
+        "iconUrl": "https://raw.githubusercontent.com/GitLatte/Sinetech/master/img/tvbahcesi/bahcesitv.png",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+        "fileSize": 19505,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "GitLatte",
+            "patr0nq",
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Live"
+        ],
+        "version": 1,
+        "internalName": "TvBahcesi",
+        "description": "TvGarden televizyon listesi. @keyiflerolsun Canl\u0131 TV eklentisinden yararlan\u0131lm\u0131\u015ft\u0131r.",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/TvBahcesi.cs3",
+        "name": "TvBahcesi"
     },
     {
         "iconUrl": "https://www.google.com/s2/favicons?domain=tvdiziler.cc&sz=%size%",
@@ -1203,7 +1222,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=webteizle2.com&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 21821,
+        "fileSize": 22420,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -1213,7 +1232,7 @@
         "tvTypes": [
             "Movie"
         ],
-        "version": 27,
+        "version": 29,
         "internalName": "WebteIzle",
         "description": "Her t\u00fcrl\u00fc filmi ister dublaj ister altyaz\u0131l\u0131, en kaliteli bir \u015fekilde izleyebilece\u011finiz ar\u015fivi en geni\u015f ger\u00e7ek film izleme siteniz.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/WebteIzle.cs3",
@@ -1223,7 +1242,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=wfilmizle.my&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 15336,
+        "fileSize": 15334,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -1232,7 +1251,7 @@
         "tvTypes": [
             "Movie"
         ],
-        "version": 2,
+        "version": 3,
         "internalName": "WFilm\u0130zle",
         "description": "Aile Filmleri izle, Yerli ve yabanc\u0131 en yeni Aile filmlerini Full HD 1080p g\u00f6r\u00fcnt\u00fc kalitesiyle T\u00fcrk\u00e7e Dublaj ve T\u00fcrk\u00e7e Altyaz\u0131 se\u00e7enekleriyle izleyin.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/WFilm\u0130zle.cs3",
@@ -1258,10 +1277,29 @@
         "name": "xHamster"
     },
     {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=xprime.tv&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+        "fileSize": 26399,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "nikyokki"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 1,
+        "internalName": "XPrime",
+        "description": "XPrime.Tv",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/XPrime.cs3",
+        "name": "XPrime"
+    },
+    {
         "iconUrl": "https://www.google.com/s2/favicons?domain=yabancidizi.tv&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 36328,
+        "fileSize": 42409,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -1270,7 +1308,7 @@
         "tvTypes": [
             "TvSeries"
         ],
-        "version": 2,
+        "version": 4,
         "internalName": "YabanciDizi",
         "description": "Son \u00e7\u0131kan yabanc\u0131 dizi ve filmleri yabancidizi' de izle. En yeni yabanc\u0131 film ve diziler, t\u00fcrk\u00e7e altyaz\u0131l\u0131 yada dublaj olarak 1080p kalitesinde hd izle.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/YabanciDizi.cs3",
@@ -1280,20 +1318,40 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=youtube.com&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 14032,
+        "fileSize": 20606,
         "status": 1,
         "language": "tr",
         "authors": [
-            "Cloudburst",
-            "keyiflerolsun"
+            "GitLatte",
+            "patr0nq"
         ],
         "tvTypes": [
-            "Others"
+            "Live"
         ],
-        "version": 5,
-        "internalName": "YouTube",
-        "description": "YouTube, izledi\u011finiz videolarla \u00f6nerilerini iyile\u015ftirir. \u0130lginizi \u00e7ekebilecek i\u00e7eriklerle dolu bir ak\u0131\u015f olu\u015fturmak i\u00e7in video izlemeye ba\u015flay\u0131n.",
-        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/YouTube.cs3",
-        "name": "YouTube"
+        "version": 1,
+        "internalName": "YTCanliTV",
+        "description": "Youtube \u00fczerinden canl\u0131 yay\u0131n yapan kanallar\u0131 izleyebilirsiniz.",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/YTCanliTV.cs3",
+        "name": "YTCanliTV"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=youtube.com&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+        "fileSize": 29170,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "GitLatte",
+            "patr0nq"
+        ],
+        "tvTypes": [
+            "Others, Live"
+        ],
+        "version": 1,
+        "internalName": "YTEglence",
+        "description": "Youtube \u00fczerindeki kullan\u0131c\u0131 tercihleriyle eklenen e\u011flence kanallar\u0131n\u0131n i\u00e7eriklerini izleyebilirsiniz.",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/YTEglence.cs3",
+        "name": "YTEglence"
     }
 ]
