@@ -1,40 +1,86 @@
 package com.keyiflerolsun
 
+import android.util.Log
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.APIHolder.capitalize
 import com.lagradost.cloudstream3.utils.*
+import com.lagradost.cloudstream3.utils.AppUtils.tryParseJson
 
 class Dzen : ExtractorApi(){
     override val name            = "Dzen"
-    override val mainUrl         = "https://cdn.dzen.ru/"
+    override val mainUrl         = "https://dzen.ru/"
     override val requiresReferer = false
 
     override suspend fun getUrl(url: String, referer: String?, subtitleCallback: (SubtitleFile) -> Unit, callback: (ExtractorLink) -> Unit) {
-        val type = if (url.contains(".m3u8")) "m3u8" else if(url.contains(".mpd")) "dash" else null
+        val document = app.get(
+            url     = url,
+            headers = mapOf("X-Requested-With" to "XMLHttpRequest"),
+            referer = this.mainUrl,
+        ).document
 
-        val extractorLink = when(type) {
-            "m3u8" -> ExtractorLink(
-                source  = this.name,
-                name    = this.name,
-                url     = url,
-                referer = "",
-                quality = Qualities.Unknown.value,
-                type    = ExtractorLinkType.M3U8
-            )
+        val script = document.select("script").find { it.data().contains("streams") }?.data() ?: ""
+        val content = script.substringAfter("\"streams\":").substringBefore("],") + "]"
+        val streams = tryParseJson<List<Stream>>(content)
+        streams?.forEach { it ->
+            val type = it.type ?: ""
+            val streamUrl = it.url ?: ""
+            Log.d("DZN", "Type -> $type")
+            val quality = if (type.contains("fullhd"))  {
+                Qualities.P1080.value
+            } else if(type.contains("high")) {
+                Qualities.P720.value
+            } else if(type.contains("medium")) {
+                Qualities.P480.value
+            } else if(type.contains("low")) {
+                Qualities.P360.value
+            } else if(type.contains("lowest")) {
+                Qualities.P240.value
+            } else if(type.contains("tiny")) {
+                Qualities.P144.value
+            } else Qualities.Unknown.value
 
-            "dash" -> ExtractorLink(
-                source  = this.name,
-                name    = this.name,
-                url     = url,
-                referer = "",
-                quality = Qualities.Unknown.value,
-                type    = ExtractorLinkType.DASH
-            )
+            val qualityName = Qualities.getStringByInt(quality)
 
-            else -> null
-        }
+            val extractorLink = when(type) {
+                "hls" -> newExtractorLink(
+                    source  = this.name + " - HLS",
+                    name    = this.name + " - HLS",
+                    url     = streamUrl,
+                    ExtractorLinkType.M3U8
+                ) {
+                    this.referer = ""
+                    this.quality = quality
+                }
 
-        if (extractorLink != null) {
+                "dash" -> newExtractorLink(
+                    source  = this.name + " - DASH",
+                    name    = this.name + " - DASH",
+                    url     = streamUrl,
+                    ExtractorLinkType.DASH
+                ) {
+                    this.referer = ""
+                    this.quality = quality
+                }
+
+                else -> newExtractorLink(
+                    source  = this.name + " - " + qualityName,
+                    name    = this.name + " - " + qualityName,
+                    url     = streamUrl,
+                    ExtractorLinkType.VIDEO
+                ) {
+                    this.referer = ""
+                    this.quality = quality
+                }
+            }
+
             callback.invoke(extractorLink)
         }
+
     }
 }
+
+private data class Stream(
+    @JsonProperty("url") val url: String? = null,
+    @JsonProperty("type") val type: String? = null,
+)

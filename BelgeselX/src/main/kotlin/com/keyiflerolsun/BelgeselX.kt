@@ -131,13 +131,14 @@ class BelgeselX : MainAPI() {
         Log.d("BLX", "data » $data")
         val source = app.get(data)
 
-        Regex("""<iframe\s+[^>]*src=\\"([^\\"']+)\\"""").findAll(source.text).forEach { alternatifUrlMatchResult ->
-            val alternatifUrl  = alternatifUrlMatchResult.groupValues[1]
-            Log.d("BLX", "alternatifUrl » $alternatifUrl")
-            val alternatifResp = app.get(alternatifUrl, referer=data)
+        val script = source.document.select("script").find { it.data().contains("var hedefA = document.getElementById") }?.data() ?: ""
+        val belgeselId = script.substringAfter("getElementById('").substringBefore("');")
 
-            if (alternatifUrl.contains("new4.php")) {
-                Regex("""file:"([^"]+)", label: "([^"]+)""").findAll(alternatifResp.text).forEach {
+        for (i in 2 .. 5) {
+            val url = "https://belgeselx.com/video/data/new$i.php?id=$belgeselId"
+            val resp = app.get(url, referer = data)
+            if (url.contains("new4.php")) {
+                Regex("""file:"([^"]+)", label: "([^"]+)""").findAll(resp.text).forEach {
                     var thisName  = this.name
                     val videoUrl  = it.groupValues[1]
                     var quality   = it.groupValues[2]
@@ -148,27 +149,24 @@ class BelgeselX : MainAPI() {
                     Log.d("BLX", "quality » $quality")
                     Log.d("BLX", "videoUrl » $videoUrl")
 
-                    /*callback.invoke(
-                        ExtractorLink (
-                            source  = thisName,
-                            name    = thisName,
-                            url     = videoUrl,
-                            referer = data,
-                            quality = getQualityFromName(quality),
-                            type    = INFER_TYPE
-                        )
-                    )*/
-                    callback.invoke(newExtractorLink(source = thisName, name= thisName, url = videoUrl, type = INFER_TYPE) {
+                    callback.invoke(newExtractorLink(source = thisName, name= thisName, url = videoUrl, type = ExtractorLinkType.VIDEO ) {
                         this.referer = data
                         this.quality = getQualityFromName(quality)
                     })
                 }
             } else {
-                val iframe = fixUrlNull(alternatifResp.document.selectFirst("iframe")?.attr("src")) ?: return@forEach
+                val iframe = fixUrlNull(resp.document.selectFirst("iframe")?.attr("src")) ?: continue
                 Log.d("BLX", "iframe » $iframe")
-
                 loadExtractor(iframe, "${mainUrl}/", subtitleCallback, callback)
             }
+        }
+
+        Regex("""<iframe\s+[^>]*src=\\"([^\\"']+)\\"""").findAll(source.text).forEach { alternatifUrlMatchResult ->
+            val alternatifUrl  = alternatifUrlMatchResult.groupValues[1]
+            Log.d("BLX", "alternatifUrl » $alternatifUrl")
+            val alternatifResp = app.get(alternatifUrl, referer=data)
+
+
         }
 
         return true

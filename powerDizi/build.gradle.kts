@@ -1,9 +1,24 @@
 version = 3
 
+dependencies {
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+}
+
+android {
+    buildFeatures {
+        buildConfig = true
+    }
+
+    defaultConfig {
+        val apiKey = project.findProperty("tmdbApiKey")?.toString() ?: ""
+        buildConfigField("String", "TMDB_SECRET_API", "\"$apiKey\"")
+    }
+}
+
 cloudstream {
-    authors     = listOf("patr0n")
+    authors     = listOf("GitLatte", "patr0nq", "keyiflerolsun")
     language    = "tr"
-    description = "powerDizi"
+    description = "powerboard`un yabancı dizi arşivi"
 
     /**
      * Status int as the following:
@@ -14,5 +29,5 @@ cloudstream {
     **/
     status  = 1 // will be 3 if unspecified
     tvTypes = listOf("TvSeries")
-    iconUrl = "https://www.google.com/s2/favicons?domain=tr.canlitv.team&sz=%size%"
+    iconUrl = "https://raw.githubusercontent.com/GitLatte/Sinetech/master/img/powerdizi/powerdizi.png"
 }
