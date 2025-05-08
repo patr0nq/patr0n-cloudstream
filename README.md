@@ -1,4 +1,4 @@
-# ☁️ CloudStream için Türkçe Eklentiler -- Toplama repodur, yedek amacıyla kullanılıyordur.
+# ☁️ CloudStream için Türkçe Eklentiler -- Toplama repodur, yedek amacıyla oluşturulmuştur.
 
 [![Boyut](https://img.shields.io/github/repo-size/keyiflerolsun/Kekik-cloudstream?logo=git&logoColor=white&label=Boyut)](#)
 [![Görüntülenme](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https://github.com/keyiflerolsun/Kekik-cloudstream&title=Görüntülenme)](#)
@@ -18,7 +18,7 @@ _CloudStream için Türkçe yayın yapan sitelere ait eklentiler_
 1. **[cloudstream/pre-release](https://github.com/recloudstream/cloudstream/releases/tag/pre-release)** _Adresinden güncel APK dosyasını indirip kurun._
 2. **Uygulamanın yüklü olduğu cihazda** _[depoyu otomatik yüklemek için tıklayın](https://keyiflerolsun.me/http-protocol-redirector?r=cloudstreamrepo://raw.githubusercontent.com/nikyokki/nik-cloudstream/master/repo.json)_
    - **veya**
-   - `Depo ekle` _butonuyla **manuel** ekleme yapmak isteyen arkadaşlar için_ `nikstream` _**kısa kod**u mevcuttur._ `Depo ismi` _kısmını boş bırakarak_ `Depo URL'si` _kısmına_ `nikstream` yazarak `Depo ekle` _demeniz yeterli.._
+   - `Depo ekle` _butonuyla **manuel** ekleme yapmak isteyen arkadaşlar için_ `nikstream` _**kısa kod**u mevcuttur._ `Depo ismi` _kısmını boş bırakarak_ `Depo URL'si` _kısmına_ `patr0n` yazarak `Depo ekle` _demeniz yeterli.._
 
 ## 📼 Video Anlatım
 
