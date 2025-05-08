@@ -283,7 +283,7 @@ class DizifunProvider : MainAPI() { // All providers must be subclasses of MainA
                 //     ActorData(Actor(name ?: "", image), roleString = "Actor")
                 // }
                 if (trailerUrl != null) {
-                    this.trailers = listOf(TrailerData(trailerUrl, "Trailer", trailerUrl.contains("youtube")))
+                    this.trailers = mutableListOf(TrailerData(trailerUrl, "Trailer", trailerUrl.contains("youtube")))
                 }
             }
         } else if (url.contains("/film/")) { // Movie
@@ -296,7 +296,7 @@ class DizifunProvider : MainAPI() { // All providers must be subclasses of MainA
                 this.tags = genres
                 this.recommendations = recommendations
                 if (trailerUrl != null) {
-                    this.trailers = listOf(TrailerData(trailerUrl, "Trailer", trailerUrl.contains("youtube")))
+                    this.trailers = mutableListOf(TrailerData(trailerUrl, "Trailer", trailerUrl.contains("youtube")))
                 }
                 // Add other details like rating, duration, actors if available
             }
