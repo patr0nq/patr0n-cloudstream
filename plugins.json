@@ -821,6 +821,44 @@
         "name": "PornHub"
     },
     {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=tr.canlitv.team&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+        "fileSize": 18684,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "patr0n"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 3,
+        "internalName": "powerDizi",
+        "description": "powerDizi",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/powerDizi.cs3",
+        "name": "powerDizi"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=tr.canlitv.team&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+        "fileSize": 18673,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "patr0n"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 3,
+        "internalName": "powerSinema",
+        "description": "powerSinema",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/powerSinema.cs3",
+        "name": "powerSinema"
+    },
+    {
         "iconUrl": "https://www.google.com/s2/favicons?domain=rarefilmm.com&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
@@ -1062,6 +1100,44 @@
         "description": "TO Grubu spor kanallar\u0131n\u0131 i\u00e7erir: Vavoo.to, Huhu.to, Kool.to, Oha.to",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/TOGrup.cs3",
         "name": "TOGrup"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=tranimaci.com&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+        "fileSize": 12634,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "Anime"
+        ],
+        "version": 15,
+        "internalName": "TRanimaci",
+        "description": "TRanimaci - T\u00fcrkiye'nin Online Anime izleme sitesi.",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/TRanimaci.cs3",
+        "name": "TRanimaci"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=asyalog.com&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+        "fileSize": 13687,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "keyiflerolsun"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 52,
+        "internalName": "TRasyalog",
+        "description": "TRasyalog izleme sitesi.",
+        "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/TRasyalog.cs3",
+        "name": "TRasyalog"
     },
     {
         "iconUrl": "https://www.google.com/s2/favicons?domain=www.turkanime.co&sz=%size%",
