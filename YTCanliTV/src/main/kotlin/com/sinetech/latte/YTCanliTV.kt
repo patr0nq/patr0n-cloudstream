@@ -16,7 +16,7 @@ import com.lagradost.cloudstream3.utils.loadExtractor
 import com.lagradost.cloudstream3.utils.StringUtils.encodeUri
 
 class YTCanliTV : MainAPI() {
-    override var mainUrl = "https://iv.ggtyler.dev"
+    override var mainUrl = "https://nyc1.iv.ggtyler.dev"
     override var name = "Youtube Canlı TV「▶️」"
     override var lang = "tr"
     override val hasMainPage = true
