@@ -3,7 +3,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=www.4kfilmizlesene.org&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 11025,
+        "fileSize": 11030,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -12,7 +12,7 @@
         "tvTypes": [
             "Movie"
         ],
-        "version": 2,
+        "version": 3,
         "internalName": "4KFilmIzlesene",
         "description": "En yeni ve sorunsuz \u26a1  Full HD Film izle keyfi her yerde sizinle ! 4K ve 1080p online film izleme fark\u0131yla 4KFilmizlesene&amp;#039;nin Tad\u0131n\u0131 \u00c7\u0131kart.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/4KFilmIzlesene.cs3",
@@ -187,7 +187,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=dizigom1.co&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 17454,
+        "fileSize": 17460,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -196,7 +196,7 @@
         "tvTypes": [
             "Movie"
         ],
-        "version": 3,
+        "version": 4,
         "internalName": "DiziGom",
         "description": "T\u00fcrk\u00e7e altyaz\u0131l\u0131 yabanc\u0131 dizi izle, T\u00fcm yabanc\u0131, kore, netflix dizilerin yeni ve eski sezonlar\u0131n\u0131 orijinal dilinde dizigom1 alt yaz\u0131l\u0131 film izleyebilir, sadece t\u00fcrk\u00e7e altyaz\u0131l\u0131 en iyi yabanc\u0131 diziler ve filmler hakk\u0131nda yorum yapabilirsiniz.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/DiziGom.cs3",
@@ -265,7 +265,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=www.dizimom.tv&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 29833,
+        "fileSize": 29836,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -275,7 +275,7 @@
         "tvTypes": [
             "TvSeries"
         ],
-        "version": 13,
+        "version": 14,
         "internalName": "DiziMom",
         "description": "Binlerce yerli yabanc\u0131 dizi ar\u015fivi, t\u00fcm sezonlar, kesintisiz b\u00f6l\u00fcmler. Sadece dizi izle, Dizimom heryerde seninle!",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/DiziMom.cs3",
@@ -583,7 +583,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=hdfilmsitesi.net&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 22401,
+        "fileSize": 22395,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -592,7 +592,7 @@
         "tvTypes": [
             "Movie"
         ],
-        "version": 8,
+        "version": 9,
         "internalName": "HDFilmSitesi",
         "description": "Film izle, Hdfilmsitesi ile Online 1080p ve 4K kalite Full HD Filmlere T\u00fcrk\u00e7e Dublaj ve Altyaz\u0131l\u0131 olarak Reklams\u0131z Kesintisiz HD Film izle.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/HDFilmSitesi.cs3",
@@ -882,7 +882,7 @@
         "iconUrl": "https://rectvapk.cc/wp-content/uploads/2023/02/Rec-TV.webp",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-        "fileSize": 20696,
+        "fileSize": 20699,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -897,7 +897,7 @@
             "Live",
             "TvSeries"
         ],
-        "version": 73,
+        "version": 74,
         "internalName": "RecTV",
         "description": "RecTv APK, T\u00fcrkiye\u2019deki en pop\u00fcler \u00c7evrimi\u00e7i Medya Ak\u0131\u015f platformlar\u0131ndan biridir. Filmlerin, Canl\u0131 Sporlar\u0131n, Web Dizilerinin ve \u00e7ok daha fazlas\u0131n\u0131n keyfini \u00fccretsiz \u00e7\u0131kar\u0131n.",
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/RecTV.cs3",
