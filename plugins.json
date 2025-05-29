@@ -22,7 +22,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=animecix.net&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 23144,
+    "fileSize": 23158,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -44,7 +44,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=asyawatch.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 28863,
+    "fileSize": 28874,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -63,7 +63,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=belgeselx.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 20289,
+    "fileSize": 20292,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -84,7 +84,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=tr.canlitv.team&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 18016,
+    "fileSize": 18020,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -105,7 +105,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=cizgimax.online&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 18339,
+    "fileSize": 18333,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -125,7 +125,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=ddizi.im&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 22769,
+    "fileSize": 22762,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -146,7 +146,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=www.dizibox.de&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 22723,
+    "fileSize": 22720,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -166,7 +166,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=dizifun3.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 31377,
+    "fileSize": 31386,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -187,7 +187,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=dizigom1.co&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 17459,
+    "fileSize": 17463,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -206,7 +206,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=https://dizikorea.vip&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 18656,
+    "fileSize": 18657,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -226,7 +226,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=dizilla.club&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 27745,
+    "fileSize": 27742,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -246,7 +246,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=dizimag.net&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 26257,
+    "fileSize": 26258,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -265,7 +265,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=www.dizimom.tv&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 29832,
+    "fileSize": 29833,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -285,7 +285,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=https://dizipal683.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 18714,
+    "fileSize": 18715,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -326,7 +326,7 @@
     "iconUrl": "https://www.dmax.com.tr/favicon.ico",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 13245,
+    "fileSize": 13247,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -342,29 +342,10 @@
     "name": "DMax"
   },
   {
-    "iconUrl": "https://www.google.com/s2/favicons?domain=tr.canlitv.team&sz=%size%",
-    "apiVersion": 1,
-    "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 18686,
-    "status": 1,
-    "language": "tr",
-    "authors": [
-      "patr0n"
-    ],
-    "tvTypes": [
-      "Live"
-    ],
-    "version": 1,
-    "internalName": "DragonTV",
-    "description": "Canlı TV",
-    "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/DragonTV.cs3",
-    "name": "DragonTV"
-  },
-  {
     "iconUrl": "https://www.google.com/s2/favicons?domain=filmizlesene.plus&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 17151,
+    "fileSize": 17147,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -383,7 +364,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=filmkovasi.tv&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 17757,
+    "fileSize": 17762,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -423,7 +404,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=www.filmmodu17.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 14781,
+    "fileSize": 14782,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -502,7 +483,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=fullporner.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 12290,
+    "fileSize": 12292,
     "status": 1,
     "language": "en",
     "authors": [
@@ -544,7 +525,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=www.hdfilmcehennemi2.nl&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 23792,
+    "fileSize": 23790,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -563,7 +544,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=hdfilmizle.to&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 27427,
+    "fileSize": 27423,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -583,7 +564,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=hdfilmsitesi.net&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 22392,
+    "fileSize": 22389,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -602,7 +583,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=hqporner.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 17213,
+    "fileSize": 17211,
     "status": 1,
     "language": "en",
     "authors": [
@@ -622,7 +603,7 @@
     "iconUrl": "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh3vCp6N1K4bECoYRQD-cisJF2_6V_Hk01ZhDmoPR2JuM8O5qr4MqrPO1munM9cRlleBBSK6odYhLtDBWv4E3vhPhynlmS5hVVtJZShHoGA5REQ8_3v8SIlccTEqzVQu2UJyNYQdJNrKIfWy66RQeT0D-CcmFCbHPz5023H6p2v5fv4NVloZ5Rqo_yGrIY/s320/iNat-Box-App.png",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 30821,
+    "fileSize": 30822,
     "status": 3,
     "language": "tr",
     "authors": [
@@ -639,25 +620,6 @@
     "description": "İnatBox cloudstream eklentisidir. Sevdiğiniz yayın platformlarını ve canlı maçları burada bulabilirsiniz.",
     "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/InatBox.cs3",
     "name": "InatBox"
-  },
-  {
-    "iconUrl": "https://www.google.com/s2/favicons?domain=tr.canlitv.team&sz=%size%",
-    "apiVersion": 1,
-    "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 18674,
-    "status": 1,
-    "language": "tr",
-    "authors": [
-      "patr0n"
-    ],
-    "tvTypes": [
-      "Live"
-    ],
-    "version": 3,
-    "internalName": "iptvSevenler",
-    "description": "iptvSevenler",
-    "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/iptvSevenler.cs3",
-    "name": "iptvSevenler"
   },
   {
     "iconUrl": "https://www.google.com/s2/favicons?domain=720pizle.ai&sz=%size%",
@@ -682,7 +644,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=https://jetfilmizle.de&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 20336,
+    "fileSize": 20335,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -702,7 +664,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=www.koreanturk.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 12213,
+    "fileSize": 12210,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -721,7 +683,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=kultfilmler.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 18986,
+    "fileSize": 18990,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -761,7 +723,7 @@
     "iconUrl": "https://netfree2.cc/mobile/img/nf2/icon_x192.png",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 36948,
+    "fileSize": 36951,
     "status": 1,
     "language": "hi",
     "authors": [
@@ -804,7 +766,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=pornhub.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 11461,
+    "fileSize": 11463,
     "status": 1,
     "language": "en",
     "authors": [
@@ -824,7 +786,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=tr.canlitv.team&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 18683,
+    "fileSize": 18685,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -843,7 +805,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=tr.canlitv.team&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 18669,
+    "fileSize": 18681,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -862,7 +824,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=rarefilmm.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 14697,
+    "fileSize": 14702,
     "status": 1,
     "language": "en",
     "authors": [
@@ -882,7 +844,7 @@
     "iconUrl": "https://rectvapk.cc/wp-content/uploads/2023/02/Rec-TV.webp",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 20702,
+    "fileSize": 20701,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -907,7 +869,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=roketdizi.co&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 20734,
+    "fileSize": 20733,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -926,7 +888,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=selcukflix.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 28872,
+    "fileSize": 28879,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -965,7 +927,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=sezonlukdizi6.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 22161,
+    "fileSize": 22162,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -986,7 +948,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=www.sinema.cx&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 14361,
+    "fileSize": 14359,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -1006,7 +968,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=spankbang.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 12168,
+    "fileSize": 12165,
     "status": 1,
     "language": "en",
     "authors": [
@@ -1027,7 +989,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=www.superfilmgeldi.biz&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 18227,
+    "fileSize": 18223,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -1047,7 +1009,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=tafdi.info&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 11847,
+    "fileSize": 11842,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -1066,7 +1028,7 @@
     "iconUrl": "https://www.tlctv.com.tr/favicon.ico",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 13260,
+    "fileSize": 13261,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -1085,7 +1047,7 @@
     "iconUrl": "https://raw.githubusercontent.com/GitLatte/temporarylists/refs/heads/main/img/daddylive.png",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 21969,
+    "fileSize": 21970,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -1105,7 +1067,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=tranimaci.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 12631,
+    "fileSize": 12634,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -1183,7 +1145,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=tvdiziler.cc&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 26711,
+    "fileSize": 26720,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -1202,7 +1164,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=ugurfilm7.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 21196,
+    "fileSize": 21195,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -1241,7 +1203,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=vavoo.to&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 12290,
+    "fileSize": 12280,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -1260,7 +1222,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=tr.canlitv.team&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 18671,
+    "fileSize": 18677,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -1279,7 +1241,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=watch2movies.net&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 18380,
+    "fileSize": 18384,
     "status": 3,
     "language": "en",
     "authors": [
@@ -1318,7 +1280,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=wfilmizle.my&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 15333,
+    "fileSize": 15332,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -1337,7 +1299,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=xhamster.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 10186,
+    "fileSize": 10188,
     "status": 1,
     "language": "en",
     "authors": [
@@ -1356,7 +1318,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=xprime.tv&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 26812,
+    "fileSize": 26814,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -1375,7 +1337,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=yabancidizi.tv&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 42412,
+    "fileSize": 42416,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -1394,7 +1356,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=youtube.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 20621,
+    "fileSize": 20623,
     "status": 1,
     "language": "tr",
     "authors": [
@@ -1414,7 +1376,7 @@
     "iconUrl": "https://www.google.com/s2/favicons?domain=youtube.com&sz=%size%",
     "apiVersion": 1,
     "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
-    "fileSize": 29180,
+    "fileSize": 29185,
     "status": 1,
     "language": "tr",
     "authors": [
