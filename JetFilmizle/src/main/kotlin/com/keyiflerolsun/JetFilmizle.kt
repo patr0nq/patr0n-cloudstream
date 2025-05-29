@@ -3,10 +3,17 @@
 package com.keyiflerolsun
 
 import android.util.Log
+import com.fasterxml.jackson.databind.DeserializationFeature
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.readValue
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.APIHolder.capitalize
 import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 
 class JetFilmizle : MainAPI() {
     override var mainUrl              = "https://jetfilmizle.watch"
@@ -123,19 +130,80 @@ class JetFilmizle : MainAPI() {
             }
         }
 
-        for (iframe in iframes) {
-            if (iframe.contains("jetv.xyz")) {
-                Log.d("JTF", "jetv » $iframe")
-                val jetvDoc    = app.get(iframe).document
-                val jetvIframe = fixUrlNull(jetvDoc.selectFirst("iframe")?.attr("src")) ?: continue
-                Log.d("JTF", "jetvIframe » $jetvIframe")
+        iframes.forEach { iframe ->
+            try {
+                if (iframe.contains("jetv.xyz")) {
+                    Log.d("JTF", "jetv » $iframe")
+                    val jetvDoc    = app.get(iframe).document
+                    val jetvIframe = fixUrlNull(jetvDoc.selectFirst("iframe")?.attr("src")) ?: return@forEach
+                    Log.d("JTF", "jetvIframe » $jetvIframe")
 
-                loadExtractor(jetvIframe, "${mainUrl}/", subtitleCallback, callback)
-            } else {
-                loadExtractor(iframe, "${mainUrl}/", subtitleCallback, callback)
+                    loadExtractor(jetvIframe, "${mainUrl}/", subtitleCallback, callback)
+                } else if (iframe.contains("d2rs.com")) {
+                    val doc = app.get(iframe).text
+                    val parameter = doc.substringAfter("form.append(\"q\", \"").substringBefore("\");");
+                    val d2List = app.post("https://d2rs.com/zeus/api.php", data = mapOf("q" to parameter), referer = iframe).body.string()
+                    val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
+                    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                    val son: List<Source> = objectMapper.readValue(d2List)
+                    for (it in son) {
+                        val type = if (it.type == "video/mp4") {
+                            ExtractorLinkType.VIDEO
+                        } else ExtractorLinkType.M3U8
+                        try {
+                            callback.invoke(
+                                newExtractorLink(
+                                    source = "D2rs" + " - " + it.label,
+                                    name = "D2rs" + " - " + it.label,
+                                    url = "https://d2rs.com/zeus/" + it.file,
+                                    type
+                                ) {
+                                    this. quality = getQualityFromName(it.label)
+                                }
+                            )
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            continue
+                        }
+                    }
+                } else if (iframe.contains("videolar.biz")) {
+                    val doc = app.get(iframe, referer = mainUrl).document
+                    val script = doc.select("script").find { it.data().contains("eval(function(p,a,c,k,e,") }?.data() ?: ""
+                    val unpacked = JsUnpacker(script).unpack()
+                    val kaken = unpacked?.substringAfter("window.kaken=\"")?.substringBefore("\";") ?: ""
+                    val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
+                    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                    val urls = "https://s2.videolar.biz/api/"
+                    val mediaType = "text/plain".toMediaType()
+                    val requestBody = kaken.toRequestBody(mediaType)
+                    val doc2 = app.post(urls, requestBody = requestBody).body.string()
+                    val son: VidBiz = objectMapper.readValue(doc2)
+                    if (son.status == "ok") {
+                        for (it in son.sources) {
+                            try {
+                                callback.invoke(
+                                    newExtractorLink(
+                                        source = "VidBiz" + " - " + it.label,
+                                        name = "VidBiz" + " - " + it.label,
+                                        url = it.file,
+                                        ExtractorLinkType.M3U8
+                                    ) {
+                                        this. quality = getQualityFromName(it.label)
+                                    }
+                                )
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                                continue
+                            }
+                        }
+                    }
+                } else {
+                    loadExtractor(iframe, "${mainUrl}/", subtitleCallback, callback)
+                }
+            } catch (e: Exception){
+                return@forEach
             }
         }
-
         return true
     }
 }
