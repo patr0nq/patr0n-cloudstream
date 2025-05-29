@@ -40,6 +40,7 @@ class XPrime : MainAPI() {
     private val apiKey = "84259f99204eeb7d45c7e3d8e36c6123"
     private val imgUrl = "https://image.tmdb.org/t/p/w500"
     private val backImgUrl = "https://image.tmdb.org/t/p/w780"
+    private val backendUrl = "https://backend.xprime.tv"
 
     override val mainPage = mainPageOf(
         "$mainUrl/trending/movie/week?api_key=$apiKey&language=tr-TR&page=SAYFA" to "Popüler",
@@ -162,11 +163,6 @@ class XPrime : MainAPI() {
         val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         val movie: XMovie = objectMapper.readValue(document.text)
-        val serversUrl = "https://xprime.tv/servers"
-        val servers    = app.get(serversUrl).parsedSafe<Servers>()
-        servers?.servers?.forEach {
-            loadServers(it, id, movie, callback, subtitleCallback)
-        }
         val subtitleUrl = "https://sub.wyzie.ru/search?id=$id"
         val subtitleDocument = app.get(subtitleUrl)
         val subtitles: List<Subtitle> = objectMapper.readValue(subtitleDocument.text)
@@ -178,6 +174,17 @@ class XPrime : MainAPI() {
                 )
             )
         }
+        val serversUrl = "https://xprime.tv/servers"
+        val servers    = app.get(serversUrl).parsedSafe<Servers>()
+        servers?.servers?.forEach {
+            try {
+                loadServers(it, id, movie, callback, subtitleCallback)
+            } catch (e: Exception) {
+                e.printStackTrace()
+
+                return@forEach
+            }
+        }
         return true
     }
 
@@ -188,12 +195,13 @@ class XPrime : MainAPI() {
         callback: (ExtractorLink) -> Unit,
         subtitleCallback: (SubtitleFile) -> Unit
     ) {
+        val movieName = movie.originalTitle
+        val year = movie.releaseDate?.split("-")?.first()?.toIntOrNull()
+        val imdb = movie.imdb
         val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         if (server.name == "primebox" && server.status == "ok") {
-            val movieName = movie.originalTitle
-            val year = movie.releaseDate?.split("-")?.first()?.toIntOrNull()
-            val url = "https://xprime.tv/primebox?name=$movieName&year=$year&fallback_year=${year?.minus(1)}"
+            val url = "$backendUrl/primebox?name=$movieName&year=$year&fallback_year=${year?.minus(1)}"
             val document = app.get(url)
             val streamText = document.text
             val stream: Stream = objectMapper.readValue(streamText)
@@ -207,6 +215,8 @@ class XPrime : MainAPI() {
                         ExtractorLinkType.VIDEO
                     ) {
                         this. quality = getQualityFromName(it)
+                        this.headers = mapOf("Origin" to "https://xprime.tv/")
+                        this.referer = "https://xprime.tv/"
                     }
                 )
             }
@@ -220,22 +230,24 @@ class XPrime : MainAPI() {
                     )
                 }
             }
-        }
-        if (server.name == "primenet" && server.status == "ok") {
-            val url = "https://xprime.tv/primenet?id=$id"
-            val document = app.get(url)
-            val source = objectMapper.readTree(document.text).get("url").textValue()
-            callback.invoke(
-                newExtractorLink(
-                    source = server.name.capitalize(),
-                    name = server.name.capitalize() ,
-                    url = source,
-                    ExtractorLinkType.M3U8
-                ) {
-                    this.headers = mapOf("Origin" to "https://xprime.tv/")
-                    this.quality = Qualities.Unknown.value
-                }
-            )
+        } else {
+            if (server.status == "ok") {
+                val url = "$backendUrl/${server.name}?name=$movieName&year=$year&id=$id&imdb=$imdb"
+                val document = app.get(url)
+                val source = objectMapper.readTree(document.text).get("url").textValue()
+                callback.invoke(
+                    newExtractorLink(
+                        source = server.name.capitalize(),
+                        name = server.name.capitalize(),
+                        url = source,
+                        ExtractorLinkType.M3U8
+                    ) {
+                        this.headers = mapOf("Origin" to "https://xprime.tv/")
+                        this.quality = Qualities.Unknown.value
+                        this.referer = "https://xprime.tv/"
+                    }
+                )
+            }
         }
     }
 }
