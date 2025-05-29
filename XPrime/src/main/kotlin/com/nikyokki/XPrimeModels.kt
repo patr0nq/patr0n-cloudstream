@@ -20,7 +20,8 @@ data class XMovie(
     @JsonProperty("vote_average") val vote: Double? = null,
     @JsonProperty("runtime") val runtime: Int? = null,
     @JsonProperty("credits") val credits: Credits? = null,
-    @JsonProperty("recommendations") val recommendations: Recommendations? = null
+    @JsonProperty("recommendations") val recommendations: Recommendations? = null,
+    @JsonProperty("imdb_id") val imdb: String? = null,
 )
 
 data class Recommendations(
