@@ -32,7 +32,7 @@ jobs:
           path: "builds"
 
       - name: Eski Derlemeleri Temizle
-        run: find $GITHUB_WORKSPACE/builds -name '*.cs3' -delete
+  run: find $GITHUB_WORKSPACE/builds -name '*.cs3' ! -name 'YerelDiziler.cs3' ! -name 'SineWix.cs3' -delete
 
       - name: JDK 17 Ayarla
         uses: actions/setup-java@v4.6.0
