@@ -1410,6 +1410,45 @@
         "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/YTCanliTV.cs3",
         "name": "YTCanliTV"
     },
+  {
+        "iconUrl": "https://play-lh.googleusercontent.com/brwGNmr7IjA_MKk_TTPs0va10hdKE_bD_a1lnKoiMuCayW98EHpRv55edA6aEoJlmwfX",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/MakotoTokioki/Cloudstream-Turkce-Eklentiler",
+        "status": 0,
+        "language": "tr",
+        "authors": [
+            "Makoto Tokioki"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries",
+            "Anime"
+        ],
+        "version": 16,
+        "internalName": "SineWix",
+        "description": "Sinewix | \u00dccretsiz Film - Dizi - Anime \u0130zleme Uygulamas\u0131.",
+        "url": "https://raw.githubusercontent.com/MakotoTokioki/Cloudstream-Turkce-Eklentiler/main/SineWix.cs3",
+        "name": "SineWix"
+    },
+  {
+        "iconUrl": "https://png.pngtree.com/png-clipart/20220823/ourmid/pngtree-turkey-country-flag-pin-icon-png-image_6120061.png",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/MakotoTokioki/Cloudstream-Turkce-Eklentiler",
+        "fileSize": 13525,
+        "status": 0,
+        "language": "tr",
+        "authors": [
+            "Makoto Tokioki"
+        ],
+        "tvTypes": [
+            "Tv Series"
+        ],
+        "version": 14,
+        "internalName": "YerelDiziler",
+        "description": "Bu eklentide yerel dizileri g\u00fcncel \u015fekilde bulabilirsiniz",
+        "url": "https://raw.githubusercontent.com/MakotoTokioki/Cloudstream-Turkce-Eklentiler/main/YerelDiziler.cs3",
+        "name": "YerelDiziler"
+    },
     {
         "iconUrl": "https://www.google.com/s2/favicons?domain=youtube.com&sz=%size%",
         "apiVersion": 1,
