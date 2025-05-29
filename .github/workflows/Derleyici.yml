@@ -52,6 +52,42 @@ jobs:
           cp **/build/*.cs3 $GITHUB_WORKSPACE/builds
           cp build/plugins.json $GITHUB_WORKSPACE/builds
 
+      - name: Ek Eklentileri plugin.json'a Ekle
+        run: |
+          cd $GITHUB_WORKSPACE/builds
+
+          jq '. += [
+            {
+              "iconUrl": "https://play-lh.googleusercontent.com/brwGNmr7IjA_MKk_TTPs0va10hdKE_bD_a1lnKoiMuCayW98EHpRv55edA6aEoJlmwfX",
+              "apiVersion": 1,
+              "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+              "status": 3,
+              "language": "tr",
+              "authors": ["Makoto Tokioki"],
+              "tvTypes": ["Movie", "TvSeries", "Anime"],
+              "version": 16,
+              "internalName": "SineWix",
+              "description": "Sinewix | Ücretsiz Film - Dizi - Anime İzleme Uygulaması.",
+              "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/SineWix.cs3",
+              "name": "SineWix"
+            },
+            {
+              "iconUrl": "https://png.pngtree.com/png-clipart/20220823/ourmid/pngtree-turkey-country-flag-pin-icon-png-image_6120061.png",
+              "apiVersion": 1,
+              "repositoryUrl": "https://github.com/patr0nq/patr0n-cloudstream",
+              "fileSize": 13525,
+              "status": 1,
+              "language": "tr",
+              "authors": ["Makoto Tokioki"],
+              "tvTypes": ["Tv Series"],
+              "version": 14,
+              "internalName": "YerelDiziler",
+              "description": "Bu eklentide yerel dizileri güncel şekilde bulabilirsiniz",
+              "url": "https://raw.githubusercontent.com/patr0nq/patr0n-cloudstream/builds/YerelDiziler.cs3",
+              "name": "YerelDiziler"
+            }
+          ]' plugins.json > plugins_temp.json && mv plugins_temp.json plugins.json
+
       - name: Derlemeleri Yükle
         run: |
           cd $GITHUB_WORKSPACE/builds
