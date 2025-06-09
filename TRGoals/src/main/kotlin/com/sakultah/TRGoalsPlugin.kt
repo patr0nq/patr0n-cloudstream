@@ -5,8 +5,8 @@ import com.lagradost.cloudstream3.plugins.Plugin
 import android.content.Context
 
 @CloudstreamPlugin
-class CanliTVPlugin: Plugin() {
+class TRGoalsPlugin: Plugin() {
     override fun load(context: Context) {
-        registerMainAPI(CanliTV())
+        registerMainAPI(TRGoals())
     }
 }

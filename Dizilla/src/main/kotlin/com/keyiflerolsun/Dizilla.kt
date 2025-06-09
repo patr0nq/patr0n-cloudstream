@@ -34,6 +34,9 @@ import com.lagradost.cloudstream3.utils.loadExtractor
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import java.util.Calendar
+import okhttp3.Interceptor
+import okhttp3.Response
+import com.lagradost.cloudstream3.network.CloudflareKiller
 
 
 
@@ -45,6 +48,29 @@ class Dizilla : MainAPI() {
     override val hasQuickSearch = true
     override val supportedTypes = setOf(TvType.TvSeries)
 
+
+    // ! CloudFlare bypass
+    override var sequentialMainPage = true        // * https://recloudstream.github.io/dokka/-cloudstream/com.lagradost.cloudstream3/-main-a-p-i/index.html#-2049735995%2FProperties%2F101969414
+    override var sequentialMainPageDelay       = 50L  // ? 0.05 saniye
+    override var sequentialMainPageScrollDelay = 50L  // ? 0.05 saniye
+
+    // ! CloudFlare v2
+    private val cloudflareKiller by lazy { CloudflareKiller() }
+    private val interceptor      by lazy { CloudflareInterceptor(cloudflareKiller) }
+
+    class CloudflareInterceptor(private val cloudflareKiller: CloudflareKiller): Interceptor {
+        override fun intercept(chain: Interceptor.Chain): Response {
+            val request  = chain.request()
+            val response = chain.proceed(request)
+            val doc      = Jsoup.parse(response.peekBody(1024 * 1024).string())
+
+            if (doc.select("title").text() == "Just a moment..." || doc.select("title").text() == "Bir dakika lütfen...") {
+                return cloudflareKiller.intercept(chain)
+            }
+            return response
+        }
+ 
+    }
 
     override val mainPage = mainPageOf(
         "${mainUrl}/tum-bolumler" to "Altyazılı Bölümler",
@@ -66,7 +92,7 @@ class Dizilla : MainAPI() {
         val url = "$mainUrl/api/bg/findSeries?releaseYearStart=1900&releaseYearEnd=$yil&imdbPointMin=5&imdbPointMax=10&categoryIdsComma=KATID&countryIdsComma=&orderType=date_desc&languageId=-1&currentPage=$page&currentPageCount=24&queryStr=&categorySlugsComma=&countryCodesComma="
         if (request.data.contains("dizi-turu")) {
             if (page > 1) {
-                val document = app.get(request.data).document
+                val document = app.get(request.data, interceptor = interceptor).document
                 document.selectFirst("div.radio-toolbar")?.select("label")?.forEachIndexed { index, element ->
                     if (element.text() == request.name) {
                         val objectMapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
