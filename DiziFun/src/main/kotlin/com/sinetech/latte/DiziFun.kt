@@ -16,7 +16,7 @@ import com.lagradost.cloudstream3.LoadResponse
 import org.jsoup.Jsoup
 
 class DiziFun : MainAPI() {
-    override var mainUrl = "https://dizifun5.com"
+    override var mainUrl = "https://dizifun6.com"
     override var name = "DiziFun"
     override var lang = "tr"
     override val hasMainPage = true
