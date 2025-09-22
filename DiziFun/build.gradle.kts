@@ -1,4 +1,4 @@
-version = 4 // oynatıcı düzenlemesi ve yeni sisteme geçiş
+version = 5 // oynatıcı düzenlemesi ve yeni sisteme geçiş
 
 cloudstream {
     authors     = listOf("GitLatte", "patr0nq")
