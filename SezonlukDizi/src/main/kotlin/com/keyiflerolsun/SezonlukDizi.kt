@@ -13,7 +13,7 @@ import com.lagradost.cloudstream3.utils.*
 import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
 
 class SezonlukDizi : MainAPI() {
-    override var mainUrl = "https://sezonlukdizi7.com"
+    override var mainUrl = "https://sezonlukdizi8.com"
     override var name = "SezonlukDizi"
     override val hasMainPage = true
     override var lang = "tr"
@@ -221,11 +221,11 @@ class SezonlukDizi : MainAPI() {
         val header = mapOf(
             "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:137.0) Gecko/20100101 Firefox/137.0",
             "Accept" to "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Referer" to "https://sezonlukdizi7.com/"
+            "Referer" to "https://sezonlukdizi8.com/"
         )
         val son = app.get(
             iframe,
-            referer = "https://sezonlukdizi7.com",
+            referer = "https://sezonlukdizi8.com",
             headers = header
         ).document.select("script").find { it.data().contains("function(p,a,c,k,e") }?.data() ?: ""
         val unPacked = JsUnpacker(son).unpack()
@@ -239,7 +239,7 @@ class SezonlukDizi : MainAPI() {
         /*val generateM3u8 = M3u8Helper.generateM3u8(
             "StreamRuby",
             sonFile.file,
-            "https://sezonlukdizi7.com/"
+            "https://sezonlukdizi8.com/"
         )*/
         callback.invoke(
             newExtractorLink(
